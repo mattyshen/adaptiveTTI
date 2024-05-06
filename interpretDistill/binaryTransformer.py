@@ -11,6 +11,7 @@ class BinaryTransformer:
         self.encoders = {}
         self.maps = {}
         self.feature_types = {}
+        self.no_interaction = []
     
     def fit(self, X, y):
         for feature_name in X.columns:
@@ -38,18 +39,21 @@ class BinaryTransformer:
         for feature_name in X.columns:
             feature = X[feature_name]
             if self.feature_types[feature_name] == 'binary':
-                #assuming binary feature is 0, 1
                 transformed_X[feature_name] = feature.map(self.maps[feature_name])
             elif self.feature_types[feature_name] == 'continuous':
                 dt_model = self.dt_models[feature_name]
                 leaf_indices = dt_model.apply(feature.values.reshape(-1, 1))
                 ohe = OneHotEncoder(sparse=False)
                 encoded = ohe.fit_transform(leaf_indices.reshape(-1, 1))
-                transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=ohe.get_feature_names_out([feature_name]))], axis = 1)
+                new_columns = ohe.get_feature_names_out([feature_name])
+                self.no_interaction.append(set(new_columns))
+                transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=new_columns)], axis = 1)
             else:
                 ohe = self.encoders[feature_name]
                 encoded = ohe.transform(feature.values.reshape(-1, 1))
-                transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=ohe.get_feature_names_out([feature_name]))], axis = 1)
+                new_columns = ohe.get_feature_names_out([feature_name])
+                self.no_interaction.append(set(new_columns))
+                transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=new_columns)], axis = 1)
         
         return transformed_X.replace({0:-1}).astype(int)
     

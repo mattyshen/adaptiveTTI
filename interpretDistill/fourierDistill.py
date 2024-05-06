@@ -17,11 +17,12 @@ sys.path.append("../interpretDistill")
 from FTutils import *
 
 class FTDistill:
-    def __init__(self, distill_model = None, selection = 'L1', lam1 = 1.0, lam2 = None):
+    def __init__(self, distill_model = None, selection = 'L1', lam1 = 1.0, lam2 = None): #, no_interaction = None):
         self.distill_model = distill_model
         self.selection = selection
         self.lam1 = lam1
         self.lam2 = lam2
+        #self.no_interactions = no_interaction
         
         if (selection not in ['L1', 'L0']) and lam2 is None:
             raise 'Interaction selection model chosen requires `lam2` argument'
@@ -38,7 +39,7 @@ class FTDistill:
         else:
             self.regression_model = ElasticNet(alpha = self.lam1+self.lam2, l1_ratio = self.lam1/(self.lam1+self.lam2), fit_intercept = False)
 
-    def fit(self, X, y = None):
+    def fit(self, X, y = None, removals = []):
         """
         Train the model using the training data.
 
@@ -62,11 +63,14 @@ class FTDistill:
             y_distill = y
         
         Chi = pd.DataFrame()
-
-        for subset in powerset(X.columns):
+        
+        self.features = list(map(tuple, powerset_pruned(X.columns, removals)))
+        print(f'num features post prune: {len(self.features)}')
+        for subset in self.features:
+            
             Chi[subset] = compute_subset_product(subset, X)
             
-        self.regression_model.fit(Chi, y_distill)
+        #self.regression_model.fit(Chi, y_distill)
         
         return self
         
@@ -86,7 +90,7 @@ class FTDistill:
         
         Chi = pd.DataFrame()
 
-        for subset in powerset(X.columns):
+        for subset in self.features:
             Chi[subset] = compute_subset_product(subset, X)
         
         return self.regression_model.predict(Chi)
