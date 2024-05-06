@@ -46,7 +46,7 @@ class BinaryTransformer:
                 ohe = OneHotEncoder(sparse=False)
                 encoded = ohe.fit_transform(leaf_indices.reshape(-1, 1))
                 transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=ohe.get_feature_names_out([feature_name]))], axis = 1)
-            else:  # Categorical feature
+            else:
                 ohe = self.encoders[feature_name]
                 encoded = ohe.transform(feature.values.reshape(-1, 1))
                 transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=ohe.get_feature_names_out([feature_name]))], axis = 1)
