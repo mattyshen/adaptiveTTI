@@ -14,15 +14,15 @@ import os
 #print(os.getcwd())
 sys.path.append("../interpretDistill")
 
-from FTutils import *
+from FTutils import powerset_pruned, compute_subset_product
 
 class FTDistill:
-    def __init__(self, distill_model = None, selection = 'L1', lam1 = 1.0, lam2 = None): #, no_interaction = None):
+    def __init__(self, distill_model = None, selection = 'L1', lam1 = 1.0, lam2 = None, size_interactions = 4):
         self.distill_model = distill_model
         self.selection = selection
         self.lam1 = lam1
         self.lam2 = lam2
-        #self.no_interactions = no_interaction
+        self.size_interactions = size_interactions
         
         if (selection not in ['L1', 'L0']) and lam2 is None:
             raise 'Interaction selection model chosen requires `lam2` argument'
@@ -64,13 +64,13 @@ class FTDistill:
         
         Chi = pd.DataFrame()
         
-        self.features = list(map(tuple, powerset_pruned(X.columns, removals)))
+        self.features = list(filter(lambda x: len(x) <= self.size_interactions, list(map(tuple, powerset_pruned(X.columns, removals)))))
         print(f'num features post prune: {len(self.features)}')
         for subset in self.features:
             
             Chi[subset] = compute_subset_product(subset, X)
             
-        #self.regression_model.fit(Chi, y_distill)
+        self.regression_model.fit(Chi, y_distill)
         
         return self
         
@@ -96,14 +96,14 @@ class FTDistill:
         return self.regression_model.predict(Chi)
 
 class FTDistillCV(FTDistill):
-    def __init__(self, distill_model=None, selection='L1', lam1_range=np.array([1.0]), lam2_range=np.array([1.0]), k_cv=5):
-        super().__init__(distill_model, selection, lam1_range[0], lam2_range[0])
+    def __init__(self, distill_model=None, selection='L1', lam1_range=np.array([1.0]), lam2_range=np.array([1.0]), k_cv=5, size_interactions=4):
+        super().__init__(distill_model, selection, lam1_range[0], lam2_range[0], size_interactions)
         self.k_cv = k_cv
         self.lam1_range = lam1_range
         self.lam2_range = lam2_range
         self.grid_search = None
 
-    def fit(self, X, y=None):
+    def fit(self, X, y=None, removals = []):
         if self.distill_model is None and y is None:
             raise ValueError("No `distill_model` was passed during initialization and no `y` passed in fit.")
             
@@ -113,8 +113,11 @@ class FTDistillCV(FTDistill):
             y_distill = y
         
         Chi = pd.DataFrame()
-
-        for subset in powerset(X.columns):
+        
+        self.features = list(filter(lambda x: len(x) <= self.size_interactions, list(map(tuple, powerset_pruned(X.columns, removals)))))
+        print(f'num features post prune: {len(self.features)}')
+        for subset in self.features:
+            
             Chi[subset] = compute_subset_product(subset, X)
         
         # Grid search over lam1 and lam2 values

@@ -40,3 +40,16 @@ def powerset_pruned(features, removals, sort = True):
 
 def compute_subset_product(subset, data):
     return pd.Series(1, index = data.index) if not subset else data[list(subset)].product(axis=1)
+
+def binary_map(arr):
+    unique_values = list(set(arr))
+    if 1 in unique_values and -1 in unique_values:
+        return {1: 1, -1: -1}
+    elif 1 in unique_values:
+        unique_values.remove(1)
+        return {unique_values[0]: -1, 1: 1}
+    elif -1 in unique_values:
+        unique_values.remove(-1)
+        return {-1: -1, unique_values[0]: 1}
+    else:
+        return {unique_values[0]: -1, unique_values[1]: 1}

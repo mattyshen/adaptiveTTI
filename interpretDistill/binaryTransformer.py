@@ -4,6 +4,8 @@ import pandas as pd
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.preprocessing import OneHotEncoder
 
+from FTutils import binary_map
+
 class BinaryTransformer:
     def __init__(self, depth=2):
         self.depth = depth
@@ -17,9 +19,8 @@ class BinaryTransformer:
         for feature_name in X.columns:
             feature = X[feature_name]
             if np.issubdtype(feature.dtype, np.number):
-                unique_vals = feature.unique()
                 if len(unique_vals) == 2:
-                    self.maps[feature_name] = {unique_vals[0]: -1, unique_vals[1]: 1}
+                    self.maps[feature_name] = binary_map(feature)
                     self.feature_types[feature_name] = 'binary'
                 else:
                     dt = DecisionTreeRegressor(max_depth=self.depth, random_state=42)
