@@ -19,6 +19,7 @@ class BinaryTransformer:
         for feature_name in X.columns:
             feature = X[feature_name]
             if np.issubdtype(feature.dtype, np.number):
+                unique_vals = feature.unique()
                 if len(unique_vals) == 2:
                     self.maps[feature_name] = binary_map(feature)
                     self.feature_types[feature_name] = 'binary'
@@ -37,10 +38,13 @@ class BinaryTransformer:
         assert set(self.feature_types.keys()) == set(X.columns), "X not compatible with the X BinaryTransformer was fitted on"
         
         transformed_X = pd.DataFrame()
-        for feature_name in X.columns:
+        for i, feature_name in enumerate(X.columns):
+            if i == 1:
+                transformed_X.reset_index(drop=True, inplace=True)
             feature = X[feature_name]
             if self.feature_types[feature_name] == 'binary':
-                transformed_X[feature_name] = feature.map(self.maps[feature_name])
+                transformed_X = pd.concat([transformed_X, pd.DataFrame(X[feature_name].round(3).map(self.maps[feature_name]).to_numpy(), columns=[feature_name])], axis = 1)
+                
             elif self.feature_types[feature_name] == 'continuous':
                 dt_model = self.dt_models[feature_name]
                 leaf_indices = dt_model.apply(feature.values.reshape(-1, 1))
@@ -55,8 +59,7 @@ class BinaryTransformer:
                 new_columns = ohe.get_feature_names_out([feature_name])
                 self.no_interaction.append(set(new_columns))
                 transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=new_columns)], axis = 1)
-        
-        return transformed_X.replace({0:-1}).astype(int)
+        return transformed_X.replace({-1:-1, 0:-1, 1:1}).astype(int)
     
     def fit_and_transform(self, X, y):
         self.fit(X,y)

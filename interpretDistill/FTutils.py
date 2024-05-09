@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from itertools import chain, combinations
 
@@ -38,18 +39,67 @@ def powerset_pruned(features, removals, sort = True):
         return sorted(final_features, key=len)
     return final_features
 
+memo = {}
+
 def compute_subset_product(subset, data):
+    global memo
+    
+    if subset in memo:
+        return memo[subset]
+    
+    result = pd.Series(1, index=data.index) if not subset else _compute_subset_product_helper(subset, data)
+    
+    memo[subset] = result
+    
+    return result
+
+def _compute_subset_product_helper(subset, data):
+    global memo
+    
+    if len(subset) == 1:
+        return data[subset[0]]
+    
+    if subset in memo:
+        return memo[subset]
+    
+    if set(subset) in [set(k) for k in memo.keys()]:
+        
+        shuffled_permutations = itertools.permutations(subset)
+
+        for perm in shuffled_permutations:
+            if perm in my_dict:
+                return memo[perm]
+    
+    overlaps = [(k, len(set(subset).intersection(set(k)))) for k in memo.keys()]
+    
+    if len(overlaps) == 0 or max(overlaps, key=lambda x: x[1])[1] == 0:
+        result = pd.Series(1, index = data.index) if not subset else data[list(subset)].product(axis=1)
+        memo[subset] = result
+        return result
+    else:
+        max_subset = max(overlaps, key=lambda x: x[1])[0]
+        max_subset_product = memo[max_subset]
+        remaining_subset = tuple(set(subset) - set(max_subset))
+
+        remaining_subset_product = _compute_subset_product_helper(remaining_subset, data)
+        result = max_subset_product * remaining_subset_product
+
+        memo[subset] = result
+
+        return result
+    
+def compute_subset_product_naive(subset, data):
     return pd.Series(1, index = data.index) if not subset else data[list(subset)].product(axis=1)
 
 def binary_map(arr):
     unique_values = list(set(arr))
-    if 1 in unique_values and -1 in unique_values:
-        return {1: 1, -1: -1}
+    if 1 in unique_values and 0 in unique_values:
+        return {1: 1, 0: 0}
     elif 1 in unique_values:
         unique_values.remove(1)
-        return {unique_values[0]: -1, 1: 1}
-    elif -1 in unique_values:
-        unique_values.remove(-1)
-        return {-1: -1, unique_values[0]: 1}
+        return {np.round(unique_values[0], 3): 0, 1: 1}
+    elif 0 in unique_values:
+        unique_values.remove(0)
+        return {0: 0, np.round(unique_values[0], 3): 1}
     else:
-        return {unique_values[0]: -1, unique_values[1]: 1}
+        return {np.round(unique_values[0], 3): 0, np.round(unique_values[1], 3): 1}
