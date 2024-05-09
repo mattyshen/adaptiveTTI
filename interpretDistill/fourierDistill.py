@@ -43,7 +43,7 @@ class FTDistill:
         else:
             self.regression_model = ElasticNet(alpha = self.lam1+self.lam2, l1_ratio = self.lam1/(self.lam1+self.lam2), fit_intercept = False)
 
-    def fit(self, X, y = None):
+    def fit(self, X, y = None, no_interaction=[]):
         """
         Train the model using the training data.
 
@@ -67,13 +67,14 @@ class FTDistill:
             y_distill = y
             
         #X = self.bt.fit_and_transform(X, y)
+        self.no_interaction = no_interaction
 
         self.poly = PolynomialFeatures(degree = self.size_interactions, interaction_only = True)
         self.poly.fit(X)
         
         poly_features = list(map(lambda s: set(s.split()), self.poly.get_feature_names_out(X.columns)))
         
-        feats_allowed = [all([len(pot_s.intersection(s)) < 2 for s in self.bt.no_interaction]) for pot_s in poly_features]
+        feats_allowed = [all([len(pot_s.intersection(s)) < 2 for s in self.no_interaction]) for pot_s in poly_features]
         
         Chi = pd.DataFrame(self.poly.transform(X), columns = list(map(lambda f: tuple(f), poly_features))).loc[:, feats_allowed]
         
@@ -100,7 +101,7 @@ class FTDistill:
         #X = self.bt.transform(X)
         
         poly_features = list(map(lambda s: set(s.split()), self.poly.get_feature_names_out(X.columns)))
-        feats_allowed = [all([len(pot_s.intersection(s)) < 2 for s in self.bt.no_interaction]) for pot_s in poly_features]
+        feats_allowed = [all([len(pot_s.intersection(s)) < 2 for s in self.no_interaction]) for pot_s in poly_features]
         
         Chi = pd.DataFrame(self.poly.transform(X), columns = list(map(lambda f: tuple(f), poly_features))).loc[:, feats_allowed]
         
@@ -114,7 +115,7 @@ class FTDistillCV(FTDistill):
         self.lam2_range = lam2_range
         self.grid_search = None
 
-    def fit(self, X, y=None):
+    def fit(self, X, y=None, no_interaction=[]):
         if self.distill_model is None and y is None:
             raise ValueError("No `distill_model` was passed during initialization and no `y` passed in fit.")
             
@@ -124,13 +125,14 @@ class FTDistillCV(FTDistill):
             y_distill = y
         
         #X = self.bt.fit_and_transform(X, y)
+        self.no_interaction = no_interaction
 
         self.poly = PolynomialFeatures(degree = self.size_interactions, interaction_only = True)
         self.poly.fit(X)
         
         poly_features = list(map(lambda s: set(s.split()), self.poly.get_feature_names_out(X.columns)))
         
-        feats_allowed = [all([len(pot_s.intersection(s)) < 2 for s in self.bt.no_interaction]) for pot_s in poly_features]
+        feats_allowed = [all([len(pot_s.intersection(s)) < 2 for s in self.no_interaction]) for pot_s in poly_features]
         
         Chi = pd.DataFrame(self.poly.transform(X), columns = list(map(lambda f: tuple(f), poly_features))).loc[:, feats_allowed]
         
