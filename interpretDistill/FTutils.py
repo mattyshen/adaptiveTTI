@@ -103,3 +103,32 @@ def binary_map(arr):
         return {0: 0, np.round(unique_values[0], 3): 1}
     else:
         return {np.round(unique_values[0], 3): 0, np.round(unique_values[1], 3): 1}
+    
+def bit_repr(column, K):
+    
+    unique_values = sorted(column.unique())
+    
+    assert len(unique_values) <= 2**K
+    
+    mapping = {val: i for i, val in enumerate(unique_values)}
+    column_mapped = column.map(mapping)
+
+    binary_representations = column_mapped.apply(lambda x: np.binary_repr(x, width=K)).apply(lambda x: pd.Series(list(x)))
+    new_columns = [f'{column.name}_bit{i}' for i in range(K)]
+    binary_representations.columns = new_columns
+
+    return binary_representations, new_columns
+
+def get_leaf_node_indices(tree, node_id=0):
+
+    left_child = tree.children_left[node_id]
+    right_child = tree.children_right[node_id]
+
+    if left_child == right_child:
+        return [node_id]
+    else:
+        left_indices = get_leaf_node_indices(tree, left_child)
+        right_indices = get_leaf_node_indices(tree, right_child)
+        return left_indices + right_indices
+
+

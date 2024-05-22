@@ -8,6 +8,7 @@ import delu  # Deep Learning Utilities: https://github.com/Yura52/delu
 import numpy as np
 import pandas as pd
 import os
+import sys
 import scipy.special
 import sklearn.datasets
 import sklearn.metrics
@@ -23,11 +24,14 @@ warnings.resetwarnings()
 
 from rtdl_revisiting_models import MLP, ResNet, FTTransformer
 
-os.chdir('/home/mattyshen/interpretableDistillation') #/simulations/Tabular_Gemstone_Price')
+#os.chdir('/home/mattyshen/interpretableDistillation') #/simulations/Tabular_Gemstone_Price')
 
+sys.path.append('../../')
+from interpretDistill.fourierDistill import FTDistill
 from interpretDistill.binaryTransformer import BinaryTransformer
 
-os.chdir('/home/mattyshen/interpretableDistillation/simulations/Tabular_Gemstone_Price')
+sys.path.append('simulations/Tabular_Gemstone_Price')
+#os.chdir('/home/mattyshen/interpretableDistillation/simulations/Tabular_Gemstone_Price')
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 # Set random seeds in all libraries.
@@ -45,10 +49,10 @@ Y: np.ndarray = dataset['price']
 # >>> Split the dataset.
 all_idx = np.arange(len(Y))
 trainval_idx, test_idx = sklearn.model_selection.train_test_split(
-    all_idx, train_size=0.8
+    all_idx, train_size=0.8, random_state = 0
 )
 train_idx, val_idx = sklearn.model_selection.train_test_split(
-    trainval_idx, train_size=0.8
+    trainval_idx, train_size=0.8, random_state = 0
 )
 
 X_b = {}

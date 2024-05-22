@@ -4,7 +4,8 @@ import pandas as pd
 
 import l0learn
 import l0bnb
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet 
+from sklearn.linear_model import LinearRegression, Ridge 
+from celer import Lasso, ElasticNet, ElasticNetCV
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import PolynomialFeatures
 
@@ -17,7 +18,7 @@ import time
 sys.path.append("../interpretDistill")
 
 #from FTutils import powerset_pruned, compute_subset_product, compute_subset_product_naive
-from binaryTransformer import BinaryTransformer
+#from binaryTransformer import BinaryTransformer
 
 class FTDistill:
     def __init__(self, distill_model = None, selection = 'L1', lam1 = 1.0, lam2 = None, size_interactions = 4, depth=1):
@@ -26,13 +27,14 @@ class FTDistill:
         self.lam1 = lam1
         self.lam2 = lam2
         self.size_interactions = size_interactions
-        self.bt = BinaryTransformer(depth=depth)
         
         if (selection not in ['L1', 'L0']) and lam2 is None:
             raise 'Interaction selection model chosen requires `lam2` argument'
         
         #TODO: Implement L0, L0L2
-        if self.selection == 'L1':
+        elif self.selection == 'OLS':
+            self.regression_model = LinearRegression(fit_intercept = False)
+        elif self.selection == 'L1':
             self.regression_model = ElasticNet(alpha = self.lam1, l1_ratio = 1, fit_intercept = False)
         elif self.selection == 'L0':
             raise NotImplementedError("L0 interaction selection not implemented")
@@ -71,7 +73,7 @@ class FTDistill:
 
         self.poly = PolynomialFeatures(degree = self.size_interactions, interaction_only = True)
         self.poly.fit(X)
-        
+        print('poly fitted')
         poly_features = list(map(lambda s: set(s.split()), self.poly.get_feature_names_out(X.columns)))
         
         feats_allowed = [all([len(pot_s.intersection(s)) < 2 for s in self.no_interaction]) for pot_s in poly_features]
@@ -80,6 +82,8 @@ class FTDistill:
         
         self.features = Chi.columns.to_list()
 
+        print('regression model fitting')
+        print(Chi.shape)
         self.regression_model.fit(Chi, y_distill)
         
         return self
@@ -139,12 +143,14 @@ class FTDistillCV(FTDistill):
         self.features = Chi.columns.to_list()
         
         # Grid search over lam1 and lam2 values
-        param_grid = {'alpha': self.lam1_range + self.lam2_range, 'l1_ratio': self.lam1_range/(self.lam1_range + self.lam2_range)}
-        self.grid_search = GridSearchCV(self.regression_model, param_grid, cv=self.k_cv)
-        self.grid_search.fit(Chi, y_distill)
+        self.regression_model = ElasticNetCV(cv=self.k_cv)
+        self.regression_model.fit(Chi, y)
+#         param_grid = {'alpha': self.lam1_range + self.lam2_range, 'l1_ratio': self.lam1_range/(self.lam1_range + self.lam2_range)}
+#         self.grid_search = GridSearchCV(self.regression_model, param_grid, cv=self.k_cv)
+#         self.grid_search.fit(Chi, y_distill)
         
-        self.lam1 = self.grid_search.best_params_['alpha'] * self.grid_search.best_params_['l1_ratio']
-        self.lam2 = self.grid_search.best_params_['alpha'] - self.lam1
-        self.regression_model = self.grid_search.best_estimator_
+#         self.lam1 = self.grid_search.best_params_['alpha'] * self.grid_search.best_params_['l1_ratio']
+#         self.lam2 = self.grid_search.best_params_['alpha'] - self.lam1
+#         self.regression_model = self.grid_search.best_estimator_
         
         return self
