@@ -21,7 +21,7 @@ sys.path.append("../interpretDistill")
 #from binaryTransformer import BinaryTransformer
 
 class FTDistill:
-    def __init__(self, distill_model = None, selection = 'L1', lam1 = 1.0, lam2 = 1.0, size_interactions = 4, max_features=None):
+    def __init__(self, distill_model = None, selection = 'L1', lam1 = 1.0, lam2 = 1.0, size_interactions = 2, max_features=None):
         self.distill_model = distill_model
         self.selection = selection
         self.lam1 = lam1
@@ -160,12 +160,12 @@ class FTDistillCV(FTDistill):
 
     
 class FTDistillClassifierCV(FTDistill):
-    def __init__(self, distill_model=None, selection='L1', lam1_range=np.array([0.01, 0.1, 1.0]), k_cv=3, size_interactions=3):
-        super().__init__(distill_model, selection, lam1_range[0], size_interactions)
+    def __init__(self, distill_model=None, selection='L1', lam1_range=np.array([0.1, 1.0, 10]), k_cv=3, size_interactions=3):
+        super().__init__(distill_model, selection, lam1_range[0], 0, size_interactions)
         self.k_cv = k_cv
         self.lam1_range = lam1_range
         self.grid_search = None
-        self.regression_model = LogisticRegression(C = 1/lam1_range[0], penalty = 'l1', max_epochs = 5000, max_iter=100)
+        self.regression_model = LogisticRegression(C = lam1_range[0], penalty = 'l1', max_epochs = 5000, max_iter=100)
 
     def fit(self, X, y=None, no_interaction=[]):
         if self.distill_model is None and y is None:
@@ -176,21 +176,14 @@ class FTDistillClassifierCV(FTDistill):
         else:
             y_distill = y
         
-        #X = self.bt.fit_and_transform(X, y)
         self.no_interaction = no_interaction
 
         self.poly = PolynomialFeatures(degree = self.size_interactions, interaction_only = True)
-        print('poly fitting')
-        start = time.time()
+        
         self.poly.fit(X)
-        end = time.time()
-        print(f'poly fit time {end-start}')
-        print('poly features')
-        start = time.time()
-        #poly_features = list(map(lambda s: set(s.split()), self.poly.get_feature_names_out(X.columns)))
+        
         poly_features = list(map(lambda s: set(s.split()), self.poly.get_feature_names_out(X.columns)))
-        end = time.time()
-        print(f'poly features time {end-start}')
+
         
         if no_interaction != []:
         
@@ -199,7 +192,6 @@ class FTDistillClassifierCV(FTDistill):
             Chi = pd.DataFrame(self.poly.transform(X), columns = list(map(lambda f: tuple(f), poly_features))).loc[:, feats_allowed]
             
         else:
-            print('empty no_interaction')
             Chi = pd.DataFrame(self.poly.transform(X), columns = list(map(lambda f: tuple(f), poly_features)))
         
         self.features = Chi.columns.to_list()
@@ -208,17 +200,18 @@ class FTDistillClassifierCV(FTDistill):
         #scorer = kwargs.get("scoring", log_loss)
         kf = KFold(n_splits=self.k_cv)
         for i, (train_index, test_index) in enumerate(kf.split(Chi)):
-            print(i)
+            print(f'k: {i}')
             Chi_out, y_out = Chi.iloc[test_index, :], y.iloc[test_index]
             Chi_in, y_in = Chi.iloc[train_index, :], y.iloc[train_index]
             for i, reg_param in enumerate(self.lam1_range):
-                base_est = LogisticRegression(C = 1/reg_param, penalty = 'l1', max_epochs = 50000, max_iter=50)
+                print(reg_param)
+                base_est = LogisticRegression(C = reg_param, penalty = 'l1', max_epochs = 50000, max_iter=50)
                 base_est.fit(Chi_in, y_in)
                 self.scores_[i].append(np.mean(base_est.predict(Chi_out) == y_out))
         self.scores_ = [np.mean(s) for s in self.scores_]
 
-        self.reg_param = self.reg_param_list[np.argmax(self.scores_)]
-        self.regression_model = LogisticRegression(C = 1/self.reg_param, penalty = 'l1', max_epochs = 5000, max_iter=100)
+        self.lam1 = self.lam1_range[np.argmax(self.scores_)]
+        self.regression_model = LogisticRegression(C = self.lam1, penalty = 'l1', max_epochs = 5000, max_iter=100)
         self.regression_model.fit(Chi, y)
         
         return self
