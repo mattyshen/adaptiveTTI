@@ -195,20 +195,37 @@ class FTDistillClassifierCV(FTDistill):
             Chi = pd.DataFrame(self.poly.transform(X), columns = list(map(lambda f: tuple(f), poly_features)))
         
         self.features = Chi.columns.to_list()
+        print(f'num Chi features: {len(self.features)}')
         
         self.scores_ = [[] for _ in self.lam1_range]
         #scorer = kwargs.get("scoring", log_loss)
-        kf = KFold(n_splits=self.k_cv)
-        for i, (train_index, test_index) in enumerate(kf.split(Chi)):
-            print(f'k: {i}')
-            Chi_out, y_out = Chi.iloc[test_index, :], y.iloc[test_index]
-            Chi_in, y_in = Chi.iloc[train_index, :], y.iloc[train_index]
-            for i, reg_param in enumerate(self.lam1_range):
-                print(reg_param)
+        kf = KFold(n_splits=self.k_cv, shuffle = True, random_state = 405)
+        for i, reg_param in enumerate(self.lam1_range):
+            print(f'reg param: {reg_param}')
+            for j, (train_index, test_index) in enumerate(kf.split(Chi)):
+                print(f'k: {j}')
+                Chi_out, y_out = Chi.iloc[test_index, :], y.iloc[test_index]
+                Chi_in, y_in = Chi.iloc[train_index, :], y.iloc[train_index]
                 base_est = LogisticRegression(C = reg_param, penalty = 'l1', max_epochs = 50000, max_iter=50)
+                print(Chi_in.shape)
                 base_est.fit(Chi_in, y_in)
                 self.scores_[i].append(np.mean(base_est.predict(Chi_out) == y_out))
-        self.scores_ = [np.mean(s) for s in self.scores_]
+            lam_avg_score = np.mean(self.scores_[i])
+            self.scores_[i] = lam_avg_score
+            if lam_avg_score >= 0.95:
+                break
+        self.scores_ = [-1 if s == [] else s for s in self.scores_]
+        # for i, (train_index, test_index) in enumerate(kf.split(Chi)):
+        #     print(f'k: {i}')
+        #     Chi_out, y_out = Chi.iloc[test_index, :], y.iloc[test_index]
+        #     Chi_in, y_in = Chi.iloc[train_index, :], y.iloc[train_index]
+        #     for i, reg_param in enumerate(self.lam1_range):
+        #         print(reg_param)
+        #         base_est = LogisticRegression(C = reg_param, penalty = 'l1', max_epochs = 50000, max_iter=50)
+        #         print(Chi_in.shape)
+        #         base_est.fit(Chi_in, y_in)
+        #         self.scores_[i].append(np.mean(base_est.predict(Chi_out) == y_out))
+        # self.scores_ = [np.mean(s) for s in self.scores_]
 
         self.lam1 = self.lam1_range[np.argmax(self.scores_)]
         self.regression_model = LogisticRegression(C = self.lam1, penalty = 'l1', max_epochs = 5000, max_iter=100)

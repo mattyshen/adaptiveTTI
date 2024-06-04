@@ -13,22 +13,22 @@ def process_csv(df):
     X = df.drop(columns = ['id', 'y_true', 'y_hat'])
     return X, y_true, y_hat
 
-def scoring_df_maker(model_list, model_names, Xy, y_truth):
-    df = pd.DataFrame(columns = ['Train Acc', 'Val Acc', 'Test Acc'])
+def scoring_df_maker(model_list, model_names, Xyy):
+    df = pd.DataFrame(columns = ['Model', 'Train Acc', 'Val Acc', 'Test Acc'])
     df['Model'] = model_names
     
-    for xy, j in zip(Xy, df.columns):
-        df[j] = [np.mean(m.predict(xy[0]) == xy[1]) for m in model_list]
+    for (x, yt, _), c in zip(Xyy, df.columns[1:]):
+        df[c] = [np.mean(m.predict(x) == yt) for m in model_list]
         
     df['Train Time'] = train_time
 
     #[ftd_bo_train, ftd_bb_train, ftd_bo_val, ftd_bb_val, ftd_bo_tv, ftd_bb_tv]
-    df['Total Num Features'] = [len(m.regression_model.coef_) for m in model_list]
-    df['Num Selected Features'] = [sum(m.regression_model.coef_ != 0) for m in model_list]
+    df['Total Num Features'] = [m.regression_model.coef_.shape[1] for m in model_list]
+    df['Avg Num Selected Features'] = [np.mean(np.sum(m.regression_model.coef_ != 0, axis = 1)) for m in model_list]
     
-    df.loc[len(df)] = ['ResNet18 CUB']+[np.mean(xy[1] == yt) for xy, yt in zip(Xy, y_truth)]+[-1, -1, -1]
+    df.loc[len(df)] = [np.mean(yh == yt) for (_, yt, yh) in Xyy]+['ResNet18 CUB', -1, -1, -1]
     
-    return df
+    return df[['Model', 'Train Acc', 'Val Acc', 'Test Acc', 'Train Time', 'Total Num Features', 'Avg Num Selected Features']]
 
 Xy_concept_train = pd.read_csv('data/Xy_concept_train.csv', index_col = [0])
 Xy_concept_val = pd.read_csv('data/Xy_concept_val.csv', index_col = [0])
@@ -60,14 +60,13 @@ train_time.append(end-start)
 print('bo_tv concluded')
 
 ftd_list = [ftd_bo_train, ftd_bo_val, ftd_bo_tv]
-ftd_names = ['(concept, resnet, train)', '(concept, resnet, val)','(concept, resnet, tv)']
+ftd_names = ['(concept, resnet, train)', '(concept, resnet, val)', '(concept, resnet, tv)']
 
-Xy_true = [(X_concept_train, y_concept_train_true), (X_concept_val, y_concept_val_true), (X_concept_test, y_concept_test_true)]
-Xy_hat = [(X_concept_train, y_concept_train_hat), (X_concept_val, y_concept_val_hat), (X_concept_test, y_concept_test_hat)]
-y_truth = [y_concept_train_true, y_concept_val_true, y_concept_test_true]
+Xytyh = [(X_concept_train, y_concept_train_true, y_concept_train_hat), (X_concept_val, y_concept_val_true, y_concept_val_hat), (X_concept_test, y_concept_test_true, y_concept_test_hat)]
+Xyhyh = [(X_concept_train, y_concept_train_hat, y_concept_train_hat), (X_concept_val, y_concept_val_hat, y_concept_val_hat), (X_concept_test, y_concept_test_hat, y_concept_test_hat)]
 
-df_true = scoring_df_maker(ftd_list, ftd_names, Xy_true, y_truth)
-df_hat = scoring_df_maker(ftd_list, ftd_names, Xy_hat, y_truth)
+df_true = scoring_df_maker(ftd_list, ftd_names, Xytyh)
+df_hat = scoring_df_maker(ftd_list, ftd_names, Xyhyh)
 
 df_true.to_csv('CUB_concept_acc_true.csv')
 df_hat.to_csv('CUB_concept_acc_hat.csv')

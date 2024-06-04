@@ -41,10 +41,12 @@ bit_boolean = str(sys.argv[2])
 
 if bit_boolean == 'bit':
     word_access = 'bit'
+    bit_boolean = True
 else:
     word_access = 'bin'
+    bit_boolean = False
     
-print(dt_depth, word_access)
+print(dt_depth, word_access, bit_boolean)
 
 # >>> Dataset.
 TaskType = Literal["regression", "binclass", "multiclass"]
@@ -68,6 +70,8 @@ bt = BinaryTransformer(depth = dt_depth, bit = bit_boolean)
 X_b['train'] = bt.fit_and_transform(X.loc[train_idx, :], Y.loc[train_idx])
 X_b['val'] = bt.transform(X.loc[val_idx, :])
 X_b['test'] = bt.transform(X.loc[test_idx, :])
+
+print(X_b['train'].shape)
 
 
 # >>> Continuous features.

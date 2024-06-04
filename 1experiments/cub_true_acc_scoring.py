@@ -14,17 +14,17 @@ def process_csv(df):
     return X, y_true, y_hat
 
 def scoring_df_maker(model_list, model_names, Xy, y_hats, train_time):
-    df = pd.DataFrame(columns = ['Train Acc', 'Val Acc', 'Test Acc'])
+    df = pd.DataFrame(columns = ['Model', 'Train Acc', 'Val Acc', 'Test Acc'])
     df['Model'] = model_names
     
-    for xy, j in zip(Xy, df.columns):
+    for xy, j in zip(Xy, df.columns[1:]):
         df[j] = [np.mean(m.predict(xy[0]) == xy[1]) for m in model_list]
         
     df['Train Time'] = train_time
 
     #[ftd_bo_train, ftd_bb_train, ftd_bo_val, ftd_bb_val, ftd_bo_tv, ftd_bb_tv]
-    df['Total Num Features'] = [len(m.regression_model.coef_) for m in model_list]
-    df['Num Selected Features'] = [sum(m.regression_model.coef_ != 0) for m in model_list]
+    df['Total Num Features'] = [m.regression_model.coef_.shape[1] for m in model_list]
+    df['Avg Num Selected Features'] = [np.mean(np.sum(m.regression_model.coef_ != 0, axis = 1)) for m in model_list]
     
     df.loc[len(df)] = ['ResNet18 CUB']+[np.mean(y_hat == y) for (_, y), y_hat in zip(Xy, y_hats)]+[-1, -1, -1]
     
