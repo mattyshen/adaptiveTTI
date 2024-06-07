@@ -6,9 +6,8 @@ from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 
 
 import os
-#os.chdir('/home/mattyshen/interpretableDistillation/interpretDistill')
 
-from interpretDistill.FTutils import binary_map, bit_repr, get_leaf_node_indices
+from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
 class BinaryTransformer:
     def __init__(self, depth=2, bit = True):
