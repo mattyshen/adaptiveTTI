@@ -1,0 +1,5 @@
+,Train Acc,Val Acc,Test Acc,Model,Train Time,Total Num Features,Num Selected Features
+0,1.0,1.0,1.0,"(concept, true, train)",1933.7594392299652,200,[200  15  12 ...   0   0   0]
+1,1.0,1.0,1.0,"(concept, true, val)",364.3152606487274,200,[200  15  12 ...   0   0   0]
+2,1.0,1.0,1.0,"(concept, true, tv)",2427.892758846283,200,[200  15  12 ...   0   0   0]
+3,ResNet18 CUB,0.9059633027522935,0.8973288814691152,0.6164998274076631,-1.0,-1,-1
