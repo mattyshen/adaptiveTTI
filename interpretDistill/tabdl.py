@@ -154,6 +154,7 @@ class TabDLM:
                 delu.iter_batches(data["train"], self.batch_size, shuffle=True),
                 desc=f"Epoch {epoch}",
                 total=epoch_size,
+                disable=(not self.verbose)
             ):
                 self.model.train()
                 self.optimizer.zero_grad()
@@ -174,11 +175,13 @@ class TabDLM:
                 if self.verbose:
                     print("New best epoch!")
                 best = {"val": val_score, "epoch": epoch}
-            print()
+            if self.verbose:
+                print()
         if self.verbose:
             print("\n\nResult:")
             print(best)
-
+        best['train'] = self.evaluate(data, "train")
+        self.best = best
     def predict(self, X):
         self.model.eval()
         
