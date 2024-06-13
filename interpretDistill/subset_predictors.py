@@ -16,7 +16,7 @@ class L0L2Regressor(BaseEstimator, RegressorMixin):
         if self.max_support_size < 1:
             self.max_support_size = min(int(self.max_support_size*min(X.shape[0],X.shape[1])),X.shape[1])
             
-        self.estimator = l0learn.fit(X.copy().values.astype(np.float64), y.copy().to_numpy(), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
+        self.estimator = l0learn.fit(X.copy().values.astype(np.float64), y.copy().to_numpy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
         
         df = self.estimator.characteristics()
         stats = df[df['support_size'] <= self.max_support_size].sort_values('support_size', ascending = False).iloc[0, :]
@@ -93,7 +93,7 @@ class L0Regressor(BaseEstimator, RegressorMixin):
         if self.max_support_size < 1:
             self.max_support_size = min(int(self.max_support_size*min(X.shape[0],X.shape[1])),X.shape[1])
             
-        self.estimator = l0learn.fit(X.copy().values.astype(np.float64), y.copy().to_numpy(), penalty=self.penalty, max_support_size=self.max_support_size)
+        self.estimator = l0learn.fit(X.copy().values.astype(np.float64), y.copy().to_numpy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size)
         
         df = self.estimator.characteristics()
         stats = df[df['support_size'] <= self.max_support_size].sort_values('support_size', ascending = False).iloc[0, :]

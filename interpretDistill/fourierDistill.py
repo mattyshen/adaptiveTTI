@@ -40,7 +40,7 @@ class FTDistill:
         self.post_max_features = post_max_features
         self.size_interactions = size_interactions
         self.re_fit_alpha = re_fit_alpha
-        self.post_sparsity_model = Ridge(alpha=self.re_fit_alpha, fit_intercept=True)
+        self.post_sparsity_model = Ridge(alpha=self.re_fit_alpha, fit_intercept=False)
         
         #TODO: build in iRF, L0
         if self.pre_interaction == 'l1':
@@ -121,7 +121,8 @@ class FTDistill:
             self.post_sparsity_model = self.post_interaction_model
         else:
             print('Re-fitting with Ridge regression')
-            Chi_post_sparsity = Chi[self.post_interaction_features]
+            Chi[('1',)] = 1
+            Chi_post_sparsity = Chi[np.array([('1',)]+list(self.post_interaction_features), dtype=object)]
             self.post_sparsity_model.fit(Chi_post_sparsity, y)
         
         return self
@@ -148,7 +149,8 @@ class FTDistill:
         Chi.drop(columns = [('1',)], inplace=True)
 
         if self.re_fit_alpha is not None:
-            Chi = Chi[self.post_interaction_features]
+            Chi[('1',)] = 1
+            Chi = Chi[np.array([('1',)]+list(self.post_interaction_features), dtype=object)]
         
         return self.post_sparsity_model.predict(Chi)
 
@@ -185,7 +187,7 @@ class FTDistillRegressorCV(FTDistillRegressor):
                          post_interaction, post_lam1, post_lam2, post_max_features, 
                          size_interactions, re_fit_alpha)
         self.cv = cv
-        self.post_sparsity_model = RidgeCV(alphas=re_fit_alpha, fit_intercept=True)
+        self.post_sparsity_model = RidgeCV(alphas=re_fit_alpha, fit_intercept=False)
         
         #TODO: build in iRF, L0
         if self.pre_interaction == 'l1':
@@ -265,7 +267,7 @@ class FTDistillClassifier(FTDistill):
                          post_interaction, post_lam1, post_lam2, post_max_features, 
                          size_interactions, re_fit_alpha)
         
-        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha, fit_intercept=True)
+        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha, fit_intercept=False)
     
 class FTDistillClassifierCV(FTDistillRegressorCV):
     def __init__(self, 
@@ -284,7 +286,7 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
                          post_interaction, post_lam1, post_lam2, post_max_features, 
                          size_interactions, re_fit_alpha, cv)
 
-        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha[0], fit_intercept=True)
+        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha[0], fit_intercept=False)
 
     def fit(self, X, y=None, no_interaction=[]):
         self.no_interaction = no_interaction
@@ -320,7 +322,8 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
         self.post_interaction_features = Chi.columns[self.post_interaction_model.coef_ != 0]
 
         print('Re-fitting with LogisticRegression with L1 penalty')
-        Chi_post_sparsity = Chi[self.post_interaction_features]
+        Chi[('1',)] = 1
+        Chi_post_sparsity = Chi[np.array([('1',)]+list(self.post_interaction_features), dtype=object)]
         
         self.scores_ = [[] for _ in self.re_fit_alpha]
         kf = KFold(n_splits=self.cv, shuffle=True, random_state=405)

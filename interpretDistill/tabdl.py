@@ -158,11 +158,11 @@ class TabDLM:
             ):
                 self.model.train()
                 self.optimizer.zero_grad()
-                loss = self.loss_fn(self.apply_model(batch), batch["y"])
+                loss = self.loss_fn(self._apply_model(batch), batch["y"])
                 loss.backward()
                 self.optimizer.step()
 
-            val_score = self.evaluate(data, "val")
+            val_score = self._evaluate(data, "val")
             
             if self.verbose:
                 print(f"(val) {val_score:.4f} [time] {timer}")
@@ -180,7 +180,7 @@ class TabDLM:
         if self.verbose:
             print("\n\nResult:")
             print(best)
-        best['train'] = self.evaluate(data, "train")
+        best['train'] = self._evaluate(data, "train")
         self.best = best
     def predict(self, X):
         self.model.eval()
@@ -213,7 +213,7 @@ class TabDLM:
             predictions = (
                     torch.cat(
                         [
-                            self.apply_model(batch)
+                            self._apply_model(batch)
                             for batch in delu.iter_batches(data['test'], self.batch_size)
                         ]
                     )
@@ -223,7 +223,7 @@ class TabDLM:
         
         return predictions * self.Y_std + self.Y_mean
 
-    def evaluate(self, data, part):
+    def _evaluate(self, data, part):
         with torch.no_grad():
             self.model.eval()
 
@@ -231,7 +231,7 @@ class TabDLM:
             y_pred = (
                 torch.cat(
                     [
-                        self.apply_model(batch)
+                        self._apply_model(batch)
                         for batch in delu.iter_batches(data[part], eval_batch_size)
                     ]
                 )
@@ -251,7 +251,7 @@ class TabDLM:
                 score = -(sklearn.metrics.mean_squared_error(y_true, y_pred) ** 0.5 * self.Y_std)
             return score  # The higher -- the better.
         
-    def apply_model(self, batch: Dict[str, Tensor]) -> Tensor:
+    def _apply_model(self, batch: Dict[str, Tensor]) -> Tensor:
         if isinstance(self.model, (MLP, ResNet)):
             x_cat_ohe = (
                 [
