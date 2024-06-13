@@ -15,16 +15,18 @@ import sys
 import os
 import time
 
+from subset_predictors import *
+
 class FTDistill:
     def __init__(self, 
                  pre_interaction='l1', 
                  pre_lam1=1.0,
                  pre_lam2=1.0,
-                 pre_max_features=None,
+                 pre_max_features=0.1,
                  post_interaction='l1', 
                  post_lam1=1.0, 
                  post_lam2=1.0,
-                 post_max_features=None,
+                 post_max_features=0.1,
                  size_interactions=2,  
                  re_fit_alpha=None):
         
@@ -38,38 +40,40 @@ class FTDistill:
         self.post_max_features = post_max_features
         self.size_interactions = size_interactions
         self.re_fit_alpha = re_fit_alpha
-        self.post_sparsity_model = Ridge(alpha=self.re_fit_alpha, fit_intercept=False)
+        self.post_sparsity_model = Ridge(alpha=self.re_fit_alpha, fit_intercept=True)
         
         #TODO: build in iRF, L0
         if self.pre_interaction == 'l1':
-            self.pre_interaction_model = ElasticNet(alpha=self.pre_lam1, l1_ratio=1, fit_intercept=False)
+            self.pre_interaction_model = ElasticNet(alpha=self.pre_lam1, l1_ratio=1)
         elif self.pre_interaction == 'l1l2':
             assert self.pre_lam2 is not None, "Pre-interaction l1l2 based models require `pre_lam22` argument"
-            self.pre_interaction_model = ElasticNet(alpha=self.pre_lam1 + self.pre_lam2, l1_ratio=self.pre_lam1 / (self.pre_lam1 + self.pre_lam2), fit_intercept=False)
+            self.pre_interaction_model = ElasticNet(alpha=self.pre_lam1 + self.pre_lam2, l1_ratio=self.pre_lam1 / (self.pre_lam1 + self.pre_lam2))
         elif self.pre_interaction == 'l0':
             assert self.pre_max_features is not None, "Pre-interaction l0 based models require `pre_max_features` argument"
-            raise NotImplementedError("l0 pre-interaction selection not implemented")
+            self.pre_interaction_model = L0Regressor(max_support_size=self.pre_max_features)
         elif self.pre_interaction == 'l0l2':
             assert self.pre_max_features is not None, "Pre-interaction l0l2 based models require `pre_max_features` argument"
             assert self.pre_lam2 is not None, "Pre-interaction l0l2 based models require `pre_lam22` argument"
-            raise NotImplementedError("l0l2 pre-interaction selection not implemented")
+            #TODO: add arguments for overall model for L0Regressor
+            self.pre_interaction_model = L0L2Regressor(max_support_size = self.pre_max_features)
         else:
             self.pre_interaction_model = None
             
         if self.post_interaction == 'l1':
-            self.post_interaction_model = ElasticNet(alpha=self.post_lam1, l1_ratio=1, fit_intercept=False)
+            self.post_interaction_model = ElasticNet(alpha=self.post_lam1, l1_ratio=1, fit_intercept=True)
         elif self.post_interaction == 'l0':
-            assert self.max_features is not None, "l0 based models require `post_max_features` argument"
-            raise NotImplementedError("l0 interaction selection not implemented")
+            assert self.post_max_features is not None, "l0 based models require `post_max_features` argument"
+            self.post_interaction_model = L0Regressor(max_support_size=self.post_max_features)
         elif self.post_interaction == 'l1l2':
             assert self.post_lam2 is not None, "Post-interaction l1l2 based models require `post_lam22` argument"
-            self.post_interaction_model = ElasticNet(alpha=self.post_lam1 + self.post_lam2, l1_ratio=self.post_lam1 / (self.post_lam1 + self.post_lam2), fit_intercept=False)
+            self.post_interaction_model = ElasticNet(alpha=self.post_lam1 + self.post_lam2, l1_ratio=self.post_lam1 / (self.post_lam1 + self.post_lam2), fit_intercept=True)
         elif self.post_interaction == 'l0l2':
             assert self.post_lam2 is not None, "Post-interaction l0l2 based models require `post_lam22` argument"
-            assert self.max_features is not None, "l0l2 based models require `post_max_features` argument"
-            raise NotImplementedError("l0l2 interaction selection not implemented")
+            assert self.post_max_features is not None, "l0l2 based models require `post_max_features` argument"
+            #TODO: add arguments for overall model for L0Regressor
+            self.post_interaction_model = L0L2Regressor(max_support_size = self.post_max_features)
         else:
-            self.post_interaction_model = ElasticNet(alpha=self.post_lam1 + self.post_lam2, l1_ratio=self.post_lam1 / (self.post_lam1 + self.post_lam2), fit_intercept=False)
+            self.post_interaction_model = ElasticNet(alpha=self.post_lam1 + self.post_lam2, l1_ratio=self.post_lam1 / (self.post_lam1 + self.post_lam2), fit_intercept=True)
             
     def fit(self, X, y, no_interaction=[]):
         """
@@ -106,6 +110,8 @@ class FTDistill:
 
         print('Post-interaction model fitting')
         print(Chi.shape)
+        
+        Chi.drop(columns = [('1',)], inplace=True)
         
         self.post_interaction_model.fit(Chi, y)
             
@@ -138,6 +144,8 @@ class FTDistill:
         poly_features = list(map(lambda s: set(s.split()), self.poly.get_feature_names_out(X.columns)))
         
         Chi = pd.DataFrame(self.poly.transform(X), columns=list(map(lambda f: tuple(f), poly_features))).loc[:, self.features]
+        
+        Chi.drop(columns = [('1',)], inplace=True)
 
         if self.re_fit_alpha is not None:
             Chi = Chi[self.post_interaction_features]
@@ -149,11 +157,11 @@ class FTDistillRegressor(FTDistill):
                  pre_interaction='l1', 
                  pre_lam1=1.0, 
                  pre_lam2=1.0,
-                 pre_max_features=None,
+                 pre_max_features=0.1,
                  post_interaction='l1', 
                  post_lam1=1.0, 
                  post_lam2=1.0,
-                 post_max_features=None,
+                 post_max_features=0.1,
                  size_interactions=2,  
                  re_fit_alpha=None):
         super().__init__(pre_interaction, pre_lam1, pre_lam2, pre_max_features, 
@@ -165,11 +173,11 @@ class FTDistillRegressorCV(FTDistillRegressor):
                  pre_interaction='l1', 
                  pre_lam1=None, 
                  pre_lam2=None,
-                 pre_max_features=None,
+                 pre_max_features=0.1,
                  post_interaction='l1', 
                  post_lam1=None, 
                  post_lam2=None,
-                 post_max_features=None,
+                 post_max_features=0.1,
                  size_interactions=2,  
                  re_fit_alpha=[0.1, 1.0, 10],
                  cv=3):
@@ -177,37 +185,38 @@ class FTDistillRegressorCV(FTDistillRegressor):
                          post_interaction, post_lam1, post_lam2, post_max_features, 
                          size_interactions, re_fit_alpha)
         self.cv = cv
-        self.post_sparsity_model = RidgeCV(alphas=re_fit_alpha, fit_intercept=False)
+        self.post_sparsity_model = RidgeCV(alphas=re_fit_alpha, fit_intercept=True)
         
         #TODO: build in iRF, L0
         if self.pre_interaction == 'l1':
-            self.pre_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, fit_intercept=False, max_epochs=5000, n_alphas=10, tol=0.01, alphas=pre_lam1)
+            self.pre_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, max_epochs=5000, n_alphas=10, tol=0.01, alphas=pre_lam1)
         elif self.pre_interaction == 'l1l2':
-            self.pre_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=False, max_epochs=5000, n_alphas=10, tol=0.01, alphas=pre_lam1)
+            self.pre_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, max_epochs=5000, n_alphas=10, tol=0.01)
         elif self.pre_interaction == 'l0':
             assert self.pre_max_features is not None, "Pre-interaction l0 based models require `pre_max_features` argument"
             raise NotImplementedError("l0 pre-interaction selection not implemented")
         elif self.pre_interaction == 'l0l2':
             assert self.pre_max_features is not None, "Pre-interaction l0l2 based models require `pre_max_features` argument"
             assert self.pre_lam2 is not None, "Pre-interaction l0l2 based models require `pre_lam22` argument"
-            raise NotImplementedError("l0l2 pre-interaction selection not implemented")
+            #TODO: pass in proper arguments
+            self.pre_interaction_model = L0L2RegressorCV(max_support_size = self.pre_max_features, cv=self.cv)
         else:
             self.pre_interaction_model = None
             
         if self.post_interaction == 'l1':
-            self.post_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, fit_intercept=False, max_epochs=5000, n_alphas=10, tol=0.01, alphas=post_lam1)
+            self.post_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol=0.01, alphas=post_lam1)
         elif self.post_interaction == 'l0':
-            assert self.max_features is not None, "l0 based models require `post_max_features` argument"
+            assert self.post_max_features is not None, "l0 based models require `post_max_features` argument"
             raise NotImplementedError("l0 interaction selection not implemented")
         elif self.post_interaction == 'l1l2':
             assert self.post_lam2 is not None, "Post-interaction l1l2 based models require `post_lam22` argument"
-            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=False, max_epochs=5000, n_alphas=10, tol = 0.01, alphas=post_lam1)
+            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol = 0.01, alphas=post_lam1)
         elif self.post_interaction == 'l0l2':
             assert self.post_lam2 is not None, "Post-interaction l0l2 based models require `post_lam22` argument"
-            assert self.max_features is not None, "l0l2 based models require `post_max_features` argument"
-            raise NotImplementedError("l0l2 interaction selection not implemented")
+            assert self.post_max_features is not None, "l0l2 based models require `post_max_features` argument"
+            self.post_interaction_model = L0L2RegressorCV(max_support_size = self.post_max_features, cv=self.cv)
         else:
-            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=False, max_epochs=5000, n_alphas=10, tol=0.01, alphas=post_lam1)
+            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol=0.01, alphas=post_lam1)
 
     def fit(self, X, y, no_interaction=[]):
         """
@@ -240,33 +249,34 @@ class FTDistillRegressorCV(FTDistillRegressor):
         return s
 
 class FTDistillClassifier(FTDistill):
+    #NOTE THAT FEATURE SELECTION IS DONE WITH REGRESSION, DESPITE THE TASK IS INTENDED TO BE CLASSIFICATION
     def __init__(self, 
                  pre_interaction='l1', 
                  pre_lam1=1.0, 
                  pre_lam2=1.0,
-                 pre_max_features=None,
+                 pre_max_features=0.1,
                  post_interaction='l1', 
                  post_lam1=1.0, 
                  post_lam2=1.0,
-                 post_max_features=None,
+                 post_max_features=0.1,
                  size_interactions=2,  
                  re_fit_alpha=1.0):
         super().__init__(pre_interaction, pre_lam1, pre_lam2, pre_max_features, 
                          post_interaction, post_lam1, post_lam2, post_max_features, 
                          size_interactions, re_fit_alpha)
         
-        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha, fit_intercept=False)
+        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha, fit_intercept=True)
     
 class FTDistillClassifierCV(FTDistillRegressorCV):
     def __init__(self, 
                  pre_interaction='l1', 
                  pre_lam1=None, 
                  pre_lam2=None,
-                 pre_max_features=None,
+                 pre_max_features=0.1,
                  post_interaction='l1', 
                  post_lam1=None, 
                  post_lam2=None,
-                 post_max_features=None,
+                 post_max_features=0.1,
                  size_interactions=2,  
                  re_fit_alpha=[0.1, 1.0, 10],
                  cv=3):
@@ -274,7 +284,7 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
                          post_interaction, post_lam1, post_lam2, post_max_features, 
                          size_interactions, re_fit_alpha, cv)
 
-        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha[0], fit_intercept=False)
+        self.post_sparsity_model = LogisticRegression(C=1/re_fit_alpha[0], fit_intercept=True)
 
     def fit(self, X, y=None, no_interaction=[]):
         self.no_interaction = no_interaction
@@ -295,6 +305,8 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
 
         print('Post-interaction model fitting')
         print(Chi.shape)
+        
+        Chi.drop(columns = [('1',)], inplace=True)
 
         self.post_interaction_model.fit(Chi, y)
         
