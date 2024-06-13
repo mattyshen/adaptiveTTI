@@ -97,12 +97,12 @@ def binary_map(arr):
         return {1: 1, 0: 0}
     elif 1 in unique_values:
         unique_values.remove(1)
-        return {np.round(unique_values[0], 3): 0, 1: 1}
+        return {unique_values[0]: 0, 1: 1}
     elif 0 in unique_values:
         unique_values.remove(0)
-        return {0: 0, np.round(unique_values[0], 3): 1}
+        return {0: 0, unique_values[0]: 1}
     else:
-        return {np.round(unique_values[0], 3): 0, np.round(unique_values[1], 3): 1}
+        return {unique_values[0]: 0, unique_values[1]: 1}
     
 def bit_repr(column, K):
     

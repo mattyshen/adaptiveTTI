@@ -3,15 +3,17 @@ import pandas as pd
 
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
+from sklearn.base import clone
 
 
 import os
 
 from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
-class BinaryTransformer:
-    def __init__(self, depth=2, bit = True):
+class RegFeaturizer:
+    def __init__(self, depth=2, bit=True, seed=0):
         self.depth = depth
+        self.dt = DecisionTreeRegressor(max_depth=self.depth, random_state=seed)
         self.dt_models = {}
         self.encoders = {}
         self.maps = {}
@@ -19,6 +21,7 @@ class BinaryTransformer:
         self.no_interaction = []
         self.bit = bit
         self.sizes = {}
+        self.seed=seed
     
     def fit(self, X, y):
         for feature_name in X.columns:
@@ -29,7 +32,7 @@ class BinaryTransformer:
                     self.maps[feature_name] = binary_map(feature)
                     self.feature_types[feature_name] = 'binary'
                 else:
-                    dt = DecisionTreeRegressor(max_depth=self.depth, random_state=42)
+                    dt = clone(self.dt)
                     dt.fit(feature.values.reshape(-1, 1), y)
                     self.dt_models[feature_name] = dt
                     self.feature_types[feature_name] = 'continuous'
@@ -56,7 +59,7 @@ class BinaryTransformer:
             feature = X[feature_name]
             if self.feature_types[feature_name] == 'binary':
                 transformed_X.reset_index(drop=True, inplace=True)
-                transformed_X = pd.concat([transformed_X, pd.DataFrame(X[feature_name].round(3).map(self.maps[feature_name]).to_numpy(), columns=[feature_name])], axis = 1)
+                transformed_X = pd.concat([transformed_X, pd.DataFrame(X[feature_name].map(self.maps[feature_name]).to_numpy(), columns=[feature_name])], axis = 1)
                 self.sizes[feature_name] = 1
               
             elif self.feature_types[feature_name] == 'continuous':
@@ -104,3 +107,9 @@ class BinaryTransformer:
     def fit_and_transform(self, X, y):
         self.fit(X,y)
         return self.transform(X)
+
+    
+class ClassFeaturizer(RegFeaturizer):
+    def __init__(self, depth=2, bit=True, seed=0):
+        super().__init__(depth, bit, seed)
+        self.dt = DecisionTreeClassifier(max_depth=self.depth, random_state=seed)
