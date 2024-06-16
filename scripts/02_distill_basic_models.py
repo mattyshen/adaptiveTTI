@@ -16,8 +16,12 @@ params_shared_dict = {
 # List of tuples to sweep over (these values are coupled, and swept over together)
 # Note: this is a dictionary so you shouldn't have repeated keys
 params_coupled_dict = {
+    ('model_name', 'alpha'): [
+        ('ridge', 0.1),
+        ('ridge', 1),
+    ],
     ('model_name', 'max_depth'): [
-        ('random_forest', i)
+        ('decision_tree', i)
         for i in range(2, 4)
     ],
 }
@@ -30,6 +34,6 @@ args_list = submit_utils.get_args_list(
 )
 submit_utils.run_args_list(
     args_list,
-    script_name=join(repo_dir, 'experiments', '01_train_model.py'),
+    script_name=join(repo_dir, 'experiments', '02_distill_model.py'),
     actually_run=True,
 )

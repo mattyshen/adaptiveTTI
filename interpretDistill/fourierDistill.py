@@ -15,7 +15,8 @@ import sys
 import os
 import time
 
-from subset_predictors import *
+print(os.getcwd())
+from interpretDistill.subset_predictors import *
 
 class FTDistill:
     def __init__(self, 

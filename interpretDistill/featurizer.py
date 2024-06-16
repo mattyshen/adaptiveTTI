@@ -5,10 +5,9 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 from sklearn.base import clone
 
-
 import os
 
-from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
 class RegFeaturizer:
     def __init__(self, depth=2, bit=True, seed=0):
@@ -104,7 +103,7 @@ class RegFeaturizer:
                     self.sizes[feature_name] = len(new_columns)
         return transformed_X.astype(int).replace({-1:-1, 0:-1, 1:1})
     
-    def fit_and_transform(self, X, y):
+    def fit_transform(self, X, y):
         self.fit(X,y)
         return self.transform(X)
 

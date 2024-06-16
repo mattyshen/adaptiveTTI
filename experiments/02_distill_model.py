@@ -12,16 +12,9 @@ import imodels
 import inspect
 import os.path
 import imodelsx.cache_save_utils
-import sys
 
 path_to_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-#os.chdir(path_to_repo)
-#os.chdir('/home/mattyshen/interpretableDistillation')
-sys.path.append(path_to_repo)
-
-print(os.listdir())
-
+print(path_to_repo)
 import interpretDistill.model
 import interpretDistill.data
 
@@ -165,9 +158,7 @@ if __name__ == "__main__":
     parser_without_computational_args = add_main_args(parser)
     parser = add_computational_args(deepcopy(parser_without_computational_args))
     args = parser.parse_args()
-    print('-----')
-    print(type(args), type(var)
-    print('-----')
+
     # set up logging
     logger = logging.getLogger()
     logging.basicConfig(level=logging.INFO)
@@ -222,9 +213,11 @@ if __name__ == "__main__":
             y_train = pd.concat([y_train, y_f]).reset_index(drop=True)
     
     model = interpretDistill.model.get_model(args.task_type, args.model_name, args)
+    distiller = interpretDistill.model.get_model(args.task_type, args.distiller_name, args)
     
     if featurizer is not None:
         model_f = interpretDistill.model.get_model(args.task_type, args.model_name, args)
+        distiller_f = interpretDistill.model.get_model(args.task_type, args.distiller_name, args)
         
 
     # set up saving dictionary + save params file
@@ -237,12 +230,19 @@ if __name__ == "__main__":
 
     # fit
     r, model = fit_model(model, X_train, y_train, feature_names, r)
+    r, distiller = fit_model(distiller, X_train, model.predict(X_train), feature_names, r)
+    
     r = evaluate_model(model, args.model_name, 'true', args.tasktype, X_train, X_test, y_train, y_test, r)
+    r = evaluate_model(distiller, args.distiller_name, 'true', args.tasktype, X_train, X_test, y_train, y_test, r)
+    r = evaluate_model(distiller, args.distiller_name, 'teacher', args.tasktype, X_train, X_test, model.predict(X_train), model.predict(X_test), r)
     
     if featurizer is not None:
         r, model_f = fit_model(model_f, X_train, y_train, feature_names, r)
+        r, distiller_f = fit_model(distiller_f, X_train, model_f.predict(X_train), feature_names, r)
+        
         r = evaluate_model(model_f, args.model_name+'_f', 'true', args.tasktype, X_train, X_test, y_train, y_test, r)
-
+        r = evaluate_model(distiller_f, args.distiller_name+'_f', 'true', args.tasktype, X_train, X_test, y_train, y_test, r)
+        r = evaluate_model(distiller_f, args.distiller_name+'_f', 'teacher', args.tasktype, X_train, X_test, model_f.predict(X_train), model_f.predict(X_test), r)
 
     # save results
     print(f'save_dir_unique: {save_dir_unique}')
