@@ -49,7 +49,7 @@ def evaluate_model(model, model_name, comp, task, X_train, X_test, y_train, y_te
     ):
         y_pred_ = model.predict(X_)
         for metric_name, metric_fn in metrics.items():
-            r[f"{metric_name}_{split_name}_{comp}"] = metric_fn(y_, y_pred_)
+            r[f"{model_name}_{metric_name}_{split_name}_{comp}"] = metric_fn(y_, y_pred_)
 
     return r
 
@@ -223,19 +223,23 @@ if __name__ == "__main__":
     
     # fit
     r, model = fit_model(model, X_train, y_train, feature_names, r)
-    r, distiller = fit_model(distiller, X_train, pd.Series(model.predict(X_train)), feature_names, r)
+    y_train_teacher = model.predict(X_train)
+    y_train_teacher = pd.Series(y_train_teacher, name = y_train.name)
+    r, distiller = fit_model(distiller, X_train, y_train_teacher, feature_names, r)
     
-    r = evaluate_model(model, args.model_name, 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-    r = evaluate_model(distiller, args.distiller_name, 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-    r = evaluate_model(distiller, args.distiller_name, 'teacher', args.task_type, X_train, X_test, model.predict(X_train), model.predict(X_test), r)
+    r = evaluate_model(model, 'teacher', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
+    r = evaluate_model(distiller, 'distiller', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
+    r = evaluate_model(distiller, 'distiller', 'teacher', args.task_type, X_train, X_test, model.predict(X_train), model.predict(X_test), r)
     
     if featurizer is not None:
         r, model_f = fit_model(model_f, X_train, y_train, feature_names, r)
-        r, distiller_f = fit_model(distiller_f, X_train, model_f.predict(X_train), feature_names, r)
+        y_train_teacher_f = model_f.predict(X_train)
+        y_train_teacher_f = pd.Series(y_train_teacher_f, name = y_train.name)
+        r, distiller_f = fit_model(distiller_f, X_train, y_train_teacher_f, feature_names, r)
         
-        r = evaluate_model(model_f, args.model_name+'_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-        r = evaluate_model(distiller_f, args.distiller_name+'_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-        r = evaluate_model(distiller_f, args.distiller_name+'_f', 'teacher', args.task_type, X_train, X_test, model_f.predict(X_train), model_f.predict(X_test), r)
+        r = evaluate_model(model_f, 'teacher_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
+        r = evaluate_model(distiller_f, 'distiller_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
+        r = evaluate_model(distiller_f, 'distiller_f', 'teacher', args.task_type, X_train, X_test, model_f.predict(X_train), model_f.predict(X_test), r)
 
     # save results
     print(f'save_dir_unique: {save_dir_unique}')
