@@ -19,20 +19,12 @@ def get_model(task_type, model_name, args):
         elif model_name == 'resnet':
             model = TabDLM(model_type='ResNet', 
                  task_type=task_type,
-                 n_classes=args.n_classes,
-                 n_cont_features=args.n_cont_features, 
-                 cat_cardinalities=args.cat_cardinalities, 
-                 d_out=args.d_out,
                  n_epochs=args.n_epochs,
                  patience=16,
                  batch_size=512)
         elif model_name == 'ft_transformer':
             model = TabDLM(model_type='FTTransformer', 
                  task_type=task_type,
-                 n_classes=args.n_classes,
-                 n_cont_features=args.n_cont_features, 
-                 cat_cardinalities=args.cat_cardinalities, 
-                 d_out=args.d_out,
                  n_epochs=args.n_epochs,
                  patience=16,
                  batch_size=512)
@@ -56,9 +48,6 @@ def get_model(task_type, model_name, args):
             model = TabDLM(model_type='ResNet', 
                  task_type=task_type,
                  n_classes=args.n_classes,
-                 n_cont_features=args.n_cont_features, 
-                 cat_cardinalities=args.cat_cardinalities, 
-                 d_out=args.d_out,
                  n_epochs=args.n_epochs,
                  patience=16,
                  batch_size=512)
@@ -66,9 +55,6 @@ def get_model(task_type, model_name, args):
             model = TabDLM(model_type='FTTransformer', 
                  task_type=task_type,
                  n_classes=args.n_classes,
-                 n_cont_features=args.n_cont_features, 
-                 cat_cardinalities=args.cat_cardinalities, 
-                 d_out=args.d_out,
                  n_epochs=args.n_epochs,
                  patience=16,
                  batch_size=512)

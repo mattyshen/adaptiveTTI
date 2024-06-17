@@ -30,7 +30,7 @@ class TabDLM:
                  model_params={}, 
                  device=None, 
                  cuda=0,
-                 verbose=True,
+                 verbose=False,
                  seed=0):
         if device is None:
             self.device = torch.device(f'cuda:{cuda}' if torch.cuda.is_available() else 'cpu')
@@ -178,9 +178,9 @@ class TabDLM:
             "val": -math.inf,
             "epoch": -1,
         }
-
-        print(f"Device: {self.device.type.upper()}")
-        print("-" * 88 + "\n")
+        if self.verbose:
+            print(f"Device: {self.device.type.upper()}")
+            print("-" * 88 + "\n")
         timer.run()
         for epoch in range(self.n_epochs):
             for batch in tqdm(

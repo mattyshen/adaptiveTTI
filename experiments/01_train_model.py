@@ -20,8 +20,6 @@ path_to_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #os.chdir('/home/mattyshen/interpretableDistillation')
 sys.path.append(path_to_repo)
 
-print(os.listdir())
-
 import interpretDistill.model
 import interpretDistill.data
 
@@ -64,9 +62,6 @@ def add_main_args(parser):
     """
 
     # dataset args
-    parser.add_argument(
-        "--task_type", type=str, default="regression", help="prediction task"
-    )
     parser.add_argument(
         "--dataset_name", type=str, default="ca_housing", help="name of dataset"
     )
@@ -157,9 +152,6 @@ if __name__ == "__main__":
     parser_without_computational_args = add_main_args(parser)
     parser = add_computational_args(deepcopy(parser_without_computational_args))
     args = parser.parse_args()
-    print('-----')
-    print(type(args), type(var)
-    print('-----')
     # set up logging
     logger = logging.getLogger()
     logging.basicConfig(level=logging.INFO)
@@ -181,17 +173,10 @@ if __name__ == "__main__":
     random.seed(args.seed)
     # torch.manual_seed(args.seed)
 
-    # load text data
-    dset, dataset_key_text = interpretDistill.data.load_huggingface_dataset(
-        dataset_name=args.dataset_name, subsample_frac=args.subsample_frac
-    )
-    (
-        X_train,
-        X_test,
-        y_train,
-        y_test,
-        feature_names,
-    ) = interpretDistill.data.convert_text_data_to_counts_array(dset, dataset_key_text)
+    X, y, args = interpretDistill.data.load_tabular_dataset(args.dataset_name, args)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args.subsample_frac, random_state=0)
+    feature_names = list(X.columns)
 
     # load tabular data
     # https://csinva.io/imodels/util/data_util.html#imodels.util.data_util.get_clean_dataset
@@ -229,11 +214,11 @@ if __name__ == "__main__":
 
     # fit
     r, model = fit_model(model, X_train, y_train, feature_names, r)
-    r = evaluate_model(model, args.model_name, 'true', args.tasktype, X_train, X_test, y_train, y_test, r)
+    r = evaluate_model(model, args.model_name, 'true', args.task_type, X_train, X_test, y_train, y_test, r)
     
     if featurizer is not None:
         r, model_f = fit_model(model_f, X_train, y_train, feature_names, r)
-        r = evaluate_model(model_f, args.model_name+'_f', 'true', args.tasktype, X_train, X_test, y_train, y_test, r)
+        r = evaluate_model(model_f, args.model_name+'_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
 
 
     # save results

@@ -7,7 +7,7 @@ from sklearn.base import clone
 
 import os
 
-from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
 class RegFeaturizer:
     def __init__(self, depth=2, bit=True, seed=0):

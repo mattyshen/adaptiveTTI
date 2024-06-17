@@ -2,12 +2,18 @@ import datasets
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
+import sklearn.datasets
 
 
-def load_tabular_dataset(dataset_name, subsample_frac, args)
+def load_tabular_dataset(dataset_name, args):
     if dataset_name == 'ca_housing':
+        dataset = sklearn.datasets.fetch_california_housing(as_frame = True)
+        X = dataset["data"]
+        y = dataset["target"]
         args.task_type = 'regression'
-        
+    else:
+        #TODO
+        return None
     return X, y, args
 
 def load_huggingface_dataset(dataset_name, subsample_frac=1.0):
