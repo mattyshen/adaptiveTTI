@@ -102,7 +102,6 @@ def add_main_args(parser):
     parser.add_argument(
         "--featurizer_overlap", type=int, default=1, help="dictate whether featurizer samples and train samples are combined"
     )
-    #TODO:
     parser.add_argument(
         "--depth", type=int, default=3, help="max depth of featurizer"
     )

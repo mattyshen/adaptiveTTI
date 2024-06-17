@@ -21,16 +21,13 @@ from rtdl_revisiting_models import MLP, ResNet, FTTransformer
 class TabDLM:
     def __init__(self, 
                  model_type, 
-                 task_type,
-                 n_classes,
-                 n_cont_features, 
-                 cat_cardinalities, 
-                 d_out,
-                 n_epochs,
-                 patience,
-                 batch_size,
+                 task_type, 
+                 n_epochs=100,
+                 patience=16,
+                 batch_size=256,
+                 n_classes=1,
                  val_prop=0.2,
-                 model_params=None, 
+                 model_params={}, 
                  device=None, 
                  cuda=0,
                  verbose=True,
@@ -40,36 +37,16 @@ class TabDLM:
         else:
             self.device = device
         
-        if model_type == 'MLP':
-            self.model = MLP(d_in=n_cont_features + sum(cat_cardinalities),
-                             d_out=d_out,
-                             **model_params)
-            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=3e-4, weight_decay=1e-5)
-        elif model_type == 'ResNet':
-            self.model = ResNet(d_in=n_cont_features + sum(cat_cardinalities),
-                                d_out=d_out, 
-                                **model_params)
-            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=3e-4, weight_decay=1e-5)
-        elif model_type == 'FTTransformer':
-            if model_params is None:
-                model_params = FTTransformer.get_default_kwargs()
-            self.model = FTTransformer(n_cont_features=n_cont_features,
-                                       cat_cardinalities=cat_cardinalities,
-                                       d_out=d_out,
-                                       **model_params)
-            self.optimizer = self.model.make_default_optimizer()
-        else:
-            raise ValueError(f"Unsupported model type: {model_type}")
+        self.model_type = model_type
         self.task_type = task_type
-        self.n_classes = n_classes
-        self.n_cont_features = n_cont_features 
-        self.cat_cardinalities = cat_cardinalities 
+        self.n_classes = n_classes 
         self.verbose = verbose
         self.n_epochs = n_epochs
         self.patience = patience
         self.batch_size = batch_size
         self.val_prop = val_prop
-        self.model = self.model.to(self.device)
+        self.model_params = model_params
+
         self.loss_fn = (
                         F.binary_cross_entropy_with_logits
                         if task_type == "binclass"
@@ -77,16 +54,17 @@ class TabDLM:
                         if task_type == "multiclass"
                         else F.mse_loss
                         )
-        self.optimizer = torch.optim.Adam(self.model.parameters())
         self.seed = seed
+        
+        self.preprocessing = None
 
     def fit(self, X_train, y_train):
         
         if self.task_type == "regression":
-            Y = y_train.astype(np.float32)
+            Y = y_train.to_numpy().astype(np.float32)
         else:
             assert self.n_classes is not None
-            Y = y_train.astype(np.int64)
+            Y = y_train.to_numpy().astype(np.int64)
             assert set(y_train.tolist()) == set(
                 range(self.n_classes)
             ), "Classification labels must form the range [0, 1, ..., n_classes - 1]"
@@ -94,36 +72,32 @@ class TabDLM:
         train_idx, val_idx = sklearn.model_selection.train_test_split(np.arange(len(Y)), train_size=self.val_prop, random_state=self.seed)
         
         X_cont = X_train.select_dtypes(include=['float64', 'float32']).astype(np.float32)
-        X_cat = X_train.drop(columns = X_cont.columns)
-        t_cat_card = [len(X_cat[c].value_counts()) for c in X_cat.columns]
-
-        assert len(t_cat_card) == len(self.cat_cardinalities)
-        assert all([t_cat_card[i] == self.cat_cardinalities[i] for i in range(len(self.cat_cardinalities))])
+        X_cat = X_train.drop(columns = X_cont.columns).astype(np.float32)
         
         data_numpy = {
-            "train": {"x_cont": X_cont.iloc[train_idx, :].to_numpy(), "y": Y.iloc[train_idx].to_numpy()},
-            "val": {"x_cont": X_cont.iloc[val_idx, :].to_numpy(), "y": Y.iloc[val_idx].to_numpy()},
+            "train": {"x_cont": X_cont.iloc[train_idx, :].to_numpy().astype(np.float32), "y": Y[train_idx]},
+            "val": {"x_cont": X_cont.iloc[val_idx, :].to_numpy().astype(np.float32), "y": Y[val_idx]},
         }
         if len(X_cat.columns) > 0:
             data_numpy["train"]["x_cat"] = X_cat.iloc[train_idx, :].to_numpy()
             data_numpy["val"]["x_cat"] = X_cat.iloc[val_idx, :].to_numpy()
-        
-        X_cont_train_numpy = data_numpy["train"]["x_cont"]
-        noise = (
-            np.random.default_rng(0)
-            .normal(0.0, 1e-5, X_cont_train_numpy.shape)
-            .astype(X_cont_train_numpy.dtype)
-        )
-        self.preprocessing = sklearn.preprocessing.QuantileTransformer(
-            n_quantiles=max(min(len(train_idx) // 30, 1000), 10),
-            output_distribution="normal",
-            subsample=10**9,
-        ).fit(X_cont_train_numpy + noise)
-        
-        del X_cont_train_numpy
+        if len(X_cont.columns) > 0:
+            X_cont_train_numpy = data_numpy["train"]["x_cont"]
+            noise = (
+                np.random.default_rng(0)
+                .normal(0.0, 1e-5, X_cont_train_numpy.shape)
+                .astype(X_cont_train_numpy.dtype)
+            )
+            self.preprocessing = sklearn.preprocessing.QuantileTransformer(
+                n_quantiles=max(min(len(train_idx) // 30, 1000), 10),
+                output_distribution="normal",
+                subsample=10**9,
+            ).fit(X_cont_train_numpy + noise)
 
-        for part in data_numpy:
-            data_numpy[part]["x_cont"] = self.preprocessing.transform(data_numpy[part]["x_cont"])
+            del X_cont_train_numpy
+
+            for part in data_numpy:
+                data_numpy[part]["x_cont"] = self.preprocessing.transform(data_numpy[part]["x_cont"])
 
         # >>> Label preprocessing.
         if self.task_type == "regression":
@@ -137,6 +111,65 @@ class TabDLM:
             part: {k: torch.as_tensor(v, device=self.device) for k, v in data_numpy[part].items()}
             for part in data_numpy
         }
+
+        d_out = self.n_classes if self.task_type == "multiclass" else 1
+
+        self.n_cont_features = len(X_cont.columns)
+        cat_unique_vals = [list(X_cat[c].value_counts().index) for c in X_cat.columns]
+        self.cat_cardinalities = [len(c) for c in cat_unique_vals]
+        
+        self.all_cat_bin = set([x for xs in cat_unique_vals for x in xs]) == {0, 1}
+                
+        if self.model_type == 'MLP':
+            if self.all_cat_bin:
+                self.model = MLP(d_in=self.n_cont_features + len(self.cat_cardinalities),
+                                     d_out=d_out,
+                                     n_blocks=2,
+                                     d_block=384,
+                                     dropout=0.1,
+                                     **self.model_params)
+            else:
+                self.model = MLP(d_in=self.n_cont_features + sum(self.cat_cardinalities),
+                                     d_out=d_out,
+                                     n_blocks=2,
+                                     d_block=384,
+                                     dropout=0.1,
+                                     **self.model_params)
+            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=3e-4, weight_decay=1e-5)
+        elif self.model_type == 'ResNet':
+            if self.all_cat_bin:
+                self.model = ResNet(d_in=self.n_cont_features + len(self.cat_cardinalities),
+                                    d_out=d_out,
+                                    n_blocks=2,
+                                    d_block=192,
+                                    d_hidden=None,
+                                    d_hidden_multiplier=2.0,
+                                    dropout1=0.11,
+                                    dropout2=0.1,
+                                    **self.model_params)
+            else:
+                self.model = ResNet(d_in=self.n_cont_features + sum(self.cat_cardinalities),
+                                    d_out=d_out,
+                                    n_blocks=2,
+                                    d_block=192,
+                                    d_hidden=None,
+                                    d_hidden_multiplier=2.0,
+                                    dropout1=0.11,
+                                    dropout2=0.1,
+                                    **self.model_params)
+            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=3e-4, weight_decay=1e-5)
+        elif self.model_type == 'FTTransformer':
+            if len(self.model_params.keys()) == 0:
+                self.model_params = FTTransformer.get_default_kwargs()
+            self.model = FTTransformer(n_cont_features=self.n_cont_features,
+                                       cat_cardinalities=self.cat_cardinalities,
+                                       d_out=d_out,
+                                       **self.model_params)
+            self.optimizer = self.model.make_default_optimizer()
+        else:
+            raise ValueError(f"Unsupported model type: {model_type}")
+            
+        self.model = self.model.to(self.device)
         
         epoch_size = math.ceil(len(train_idx) / self.batch_size)
         timer = delu.tools.Timer()
@@ -186,16 +219,16 @@ class TabDLM:
         self.model.eval()
         
         X_cont = X.select_dtypes(include=['float64', 'float32']).astype(np.float32)
-        X_cat = X.drop(columns = X_cont.columns)
+        X_cat = X.drop(columns = X_cont.columns).astype(np.float32)
         
         data_numpy = {
-            "test": {"x_cont": X_cont.to_numpy()},
+            "test": {"x_cont": X_cont.to_numpy().astype(np.float32)},
         }
         
         if len(X_cat.columns) > 0:
-            data_numpy["test"]["x_cat"] = X_cat.to_numpy()
-
-        data_numpy['test']["x_cont"] = self.preprocessing.transform(data_numpy['test']["x_cont"])
+            data_numpy["test"]["x_cat"] = X_cat.to_numpy().astype(np.float32)
+        if self.preprocessing is not None:
+            data_numpy['test']["x_cont"] = self.preprocessing.transform(data_numpy['test']["x_cont"])
 
         # >>> Label preprocessing.
         # if self.task_type == "regression":
@@ -220,8 +253,10 @@ class TabDLM:
                     .cpu()
                     .numpy()
                 )
-        
-        return predictions * self.Y_std + self.Y_mean
+        if self.task_type == "regression":
+            return predictions * self.Y_std + self.Y_mean
+        else:
+            return predictions
 
     def _evaluate(self, data, part):
         with torch.no_grad():
@@ -253,20 +288,30 @@ class TabDLM:
         
     def _apply_model(self, batch: Dict[str, Tensor]) -> Tensor:
         if isinstance(self.model, (MLP, ResNet)):
-            x_cat_ohe = (
+            if self.all_cat_bin:
+                x_cat_ohe = (
                 [
-                    F.one_hot(column, cardinality)
+                    column
                     for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)
                 ]
                 if "x_cat" in batch
                 else []
             )
+            else:
+                x_cat_ohe = (
+                    [
+                        F.one_hot(column, cardinality)
+                        for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)
+                    ]
+                    if "x_cat" in batch
+                    else []
+                )
             return self.model(torch.column_stack([batch["x_cont"]] + x_cat_ohe)).squeeze(-1)
 
         elif isinstance(self.model, FTTransformer):
             if self.n_cont_features != 0:
                 return self.model(batch["x_cont"], batch.get("x_cat")).squeeze(-1)
             else:
-                return self.model(None, batch.get("x_cat")).squeeze(-1)
+                return self.model(None, batch.get("x_cat").long()).squeeze(-1)
         else:
             raise RuntimeError(f"Unknown model type: {type(self.model)}")

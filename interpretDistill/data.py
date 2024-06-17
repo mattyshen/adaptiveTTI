@@ -8,6 +8,7 @@ def load_tabular_dataset(dataset_name, subsample_frac, args)
     if dataset_name == 'ca_housing':
         args.task_type = 'regression'
         
+    return X, y, args
 
 def load_huggingface_dataset(dataset_name, subsample_frac=1.0):
     """Load text dataset from huggingface (with train/validation spltis) + return the relevant dataset key

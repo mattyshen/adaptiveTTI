@@ -94,13 +94,6 @@ def add_main_args(parser):
         help="name of (teacher, if distillation) model",
     )
     parser.add_argument(
-        "--distiller_name",
-        type=str,
-        choices=["featurizer", "random_forest", "figs", "xgboost", "resnet", "ft_transformer", "ft_distill"],
-        default="ft_distill",
-        help="name of distiller model",
-    )
-    parser.add_argument(
         "--featurizer_name", type=str, default="no_featurizer", help="type of featurizer to discretize dataset"
     )
     parser.add_argument(
@@ -109,7 +102,6 @@ def add_main_args(parser):
     parser.add_argument(
         "--featurizer_overlap", type=int, default=1, help="dictate whether featurizer samples and train samples are combined"
     )
-    #TODO:
     parser.add_argument(
         "--depth", type=int, default=3, help="max depth of featurizer"
     )

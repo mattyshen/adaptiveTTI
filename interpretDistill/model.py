@@ -43,7 +43,7 @@ def get_model(task_type, model_name, args):
             print('Invalid model_name: {}; returning None model'.format(model_name))
             model = None
         return model
-    elif task_type == 'classification':
+    elif task_type in ['binary', 'multiclass', 'classification']:
         if model_name == 'featurizer':
             model = ClassFeaturizer(depth=args.depth, bit=args.bit)
         elif model_name == 'random_forest':

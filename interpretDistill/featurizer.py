@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 from sklearn.base import clone
 
 import os
 
-from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
 class RegFeaturizer:
     def __init__(self, depth=2, bit=True, seed=0):
@@ -101,7 +101,8 @@ class RegFeaturizer:
                     transformed_X.reset_index(drop=True, inplace=True)
                     transformed_X = pd.concat([transformed_X, pd.DataFrame(encoded, columns=new_columns)], axis = 1)
                     self.sizes[feature_name] = len(new_columns)
-        return transformed_X.astype(int).replace({-1:-1, 0:-1, 1:1})
+        # return transformed_X.astype(int).replace({-1:-1, 0:-1, 1:1})
+        return transformed_X.astype(int).replace({-1:0, 0:0, 1:1})
     
     def fit_transform(self, X, y):
         self.fit(X,y)
