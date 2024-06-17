@@ -49,7 +49,7 @@ class TabDLM:
 
         self.loss_fn = (
                         F.binary_cross_entropy_with_logits
-                        if task_type == "binclass"
+                        if task_type in ["binclass", "binary"]
                         else F.cross_entropy
                         if task_type == "multiclass"
                         else F.mse_loss
