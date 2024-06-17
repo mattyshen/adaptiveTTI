@@ -5,6 +5,7 @@ import random
 from collections import defaultdict
 from os.path import join
 import numpy as np
+import pandas as pd
 from sklearn.metrics import accuracy_score, roc_auc_score, r2_score
 from sklearn.model_selection import train_test_split
 import joblib
@@ -50,7 +51,7 @@ def evaluate_model(model, model_name, comp, task, X_train, X_test, y_train, y_te
     ):
         y_pred_ = model.predict(X_)
         for metric_name, metric_fn in metrics.items():
-            r[f"{model_name}_{metric_name}_{split_name}_{comp}"] = metric_fn(y_, y_pred_)
+            r[f"{metric_name}_{split_name}_{comp}"] = metric_fn(y_, y_pred_)
 
     return r
 
@@ -106,7 +107,7 @@ def add_main_args(parser):
     parser.add_argument(
         "--max_depth", type=int, default=4, help="max depth of tree based models (RF, XGB)")
     parser.add_argument(
-        "--max_rules", type=int, default=4, help="max rules of FIGS model"
+        "--max_rules", type=int, default=10, help="max rules of FIGS model"
     )
     parser.add_argument(
         "--pre_interaction", 
@@ -176,7 +177,6 @@ if __name__ == "__main__":
     X, y, args = interpretDistill.data.load_tabular_dataset(args.dataset_name, args)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args.subsample_frac, random_state=0)
-    feature_names = list(X.columns)
 
     # load tabular data
     # https://csinva.io/imodels/util/data_util.html#imodels.util.data_util.get_clean_dataset
@@ -213,6 +213,8 @@ if __name__ == "__main__":
     )
 
     # fit
+    feature_names = list(X_train.columns)
+    
     r, model = fit_model(model, X_train, y_train, feature_names, r)
     r = evaluate_model(model, args.model_name, 'true', args.task_type, X_train, X_test, y_train, y_test, r)
     

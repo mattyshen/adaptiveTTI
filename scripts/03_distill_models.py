@@ -19,6 +19,7 @@ params_coupled_dict = {(
   'dataset_name', 
   'subsample_frac',
   'model_name',
+  'distiller_name',
   'featurizer_name',
   'featurizer_frac',
   'featurizer_overlap',
@@ -31,6 +32,7 @@ params_coupled_dict = {(
  [(dn,
    sf,
    mn,
+   din,
    fn,
    ff,
    fo,
@@ -42,8 +44,9 @@ params_coupled_dict = {(
   )
  for dn in ['ca_housing']
  for sf in [0.2]
- for mn in ["figs", "resnet", "ft_transformer", "ft_distill"]
- for fn in ["no_featurizer", "featurizer"]
+ for mn in ["resnet", "ft_transformer"]
+ for din in ["figs"]
+ for fn in ["no_featurizer"]
  for ff in [0.33, 0.5, 0.75]
  for fo in [0, 1]
  for d in [2, 3]
@@ -61,7 +64,7 @@ args_list = submit_utils.get_args_list(
 )
 submit_utils.run_args_list(
     args_list,
-    script_name=join(repo_dir, 'experiments', '01_train_model.py'),
+    script_name=join(repo_dir, 'experiments', '02_distill_model.py'),
     actually_run=True,
     n_cpus=len(os.sched_getaffinity(0)),
 )

@@ -62,7 +62,7 @@ class L0L2RegressorCV(BaseEstimator, RegressorMixin):
         y_train = y.iloc[train_idx]
         y_val = y.iloc[val_idx]
         
-        self.estimator = l0learn.fit(X_train.copy().values.astype(np.float64), y_train.copy().to_numpy(), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
+        self.estimator = l0learn.fit(X_train.copy().values.astype(np.float64), y_train.copy().to_numpy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
     
         df = self.estimator.characteristics()
         stats = df[df['support_size'] <= self.max_support_size].sort_values('support_size', ascending = False)

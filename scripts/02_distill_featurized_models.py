@@ -46,7 +46,7 @@ params_coupled_dict = {(
  for sf in [0.2]
  for mn in ["resnet", "ft_transformer"]
  for din in ["figs", "ft_distill"]
- for fn in ["no_featurizer", "featurizer"]
+ for fn in ["featurizer"]
  for ff in [0.33, 0.5, 0.75]
  for fo in [0, 1]
  for d in [2, 3]
@@ -66,4 +66,5 @@ submit_utils.run_args_list(
     args_list,
     script_name=join(repo_dir, 'experiments', '02_distill_model.py'),
     actually_run=True,
+    n_cpus=len(os.sched_getaffinity(0)),
 )

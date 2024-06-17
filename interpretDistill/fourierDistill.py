@@ -15,7 +15,7 @@ import sys
 import os
 import time
 
-print(os.getcwd())
+#print(os.getcwd())
 from interpretDistill.subset_predictors import *
 
 class FTDistill:
@@ -98,7 +98,7 @@ class FTDistill:
             self.pre_interaction_model.fit(X, y)
             self.pre_interaction_features = X.columns[self.pre_interaction_model.coef_ != 0]
             X = X[self.pre_interaction_features]
-            print(f'Selected features: {self.pre_interaction_features}')
+            #print(f'Selected features: {self.pre_interaction_features}')
 
         self.poly = PolynomialFeatures(degree=self.size_interactions, interaction_only=True)
         self.poly.fit(X)
@@ -109,8 +109,8 @@ class FTDistill:
         
         Chi = pd.DataFrame(self.poly.transform(X), columns=list(map(lambda f: tuple(f), poly_features))).loc[:, self.features]
 
-        print('Post-interaction model fitting')
-        print(Chi.shape)
+        #print('Post-interaction model fitting')
+        #print(Chi.shape)
         
         Chi.drop(columns = [('1',)], inplace=True)
         
@@ -121,7 +121,7 @@ class FTDistill:
         if self.re_fit_alpha is None:
             self.post_sparsity_model = self.post_interaction_model
         else:
-            print('Re-fitting with Ridge regression')
+            #print('Re-fitting with Ridge regression')
             Chi[('1',)] = 1
             Chi_post_sparsity = Chi[np.array([('1',)]+list(self.post_interaction_features), dtype=object)]
             self.post_sparsity_model.fit(Chi_post_sparsity, y)
@@ -172,14 +172,15 @@ class FTDistillRegressor(FTDistill):
                          size_interactions, re_fit_alpha)
     
 class FTDistillRegressorCV(FTDistillRegressor):
+    #TODO: let users set alphas to search over for elasticnetCV models (currenly autoset, regardless of lam1/lam2 arguments)
     def __init__(self, 
                  pre_interaction='l1', 
-                 pre_lam1=None, 
-                 pre_lam2=None,
+                 pre_lam1=0.1, 
+                 pre_lam2=0.1,
                  pre_max_features=0.1,
                  post_interaction='l1', 
-                 post_lam1=None, 
-                 post_lam2=None,
+                 post_lam1=0.1, 
+                 post_lam2=0.1,
                  post_max_features=0.1,
                  size_interactions=2,  
                  re_fit_alpha=[0.1, 1.0, 10],
@@ -192,7 +193,7 @@ class FTDistillRegressorCV(FTDistillRegressor):
         
         #TODO: build in iRF, L0
         if self.pre_interaction == 'l1':
-            self.pre_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, max_epochs=5000, n_alphas=10, tol=0.01, alphas=pre_lam1)
+            self.pre_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, max_epochs=5000, n_alphas=10, tol=0.01)
         elif self.pre_interaction == 'l1l2':
             self.pre_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, max_epochs=5000, n_alphas=10, tol=0.01)
         elif self.pre_interaction == 'l0':
@@ -207,19 +208,19 @@ class FTDistillRegressorCV(FTDistillRegressor):
             self.pre_interaction_model = None
             
         if self.post_interaction == 'l1':
-            self.post_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol=0.01, alphas=post_lam1)
+            self.post_interaction_model = ElasticNetCV(l1_ratio=1, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol=0.01)
         elif self.post_interaction == 'l0':
             assert self.post_max_features is not None, "l0 based models require `post_max_features` argument"
             raise NotImplementedError("l0 interaction selection not implemented")
         elif self.post_interaction == 'l1l2':
             assert self.post_lam2 is not None, "Post-interaction l1l2 based models require `post_lam22` argument"
-            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol = 0.01, alphas=post_lam1)
+            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol = 0.01)
         elif self.post_interaction == 'l0l2':
             assert self.post_lam2 is not None, "Post-interaction l0l2 based models require `post_lam22` argument"
             assert self.post_max_features is not None, "l0l2 based models require `post_max_features` argument"
             self.post_interaction_model = L0L2RegressorCV(max_support_size = self.post_max_features, cv=self.cv)
         else:
-            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol=0.01, alphas=post_lam1)
+            self.post_interaction_model = ElasticNetCV(l1_ratio=0.5, cv=self.cv, fit_intercept=True, max_epochs=5000, n_alphas=10, tol=0.01)
 
     def fit(self, X, y, no_interaction=[]):
         """
@@ -295,7 +296,7 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
             self.pre_interaction_model.fit(X, y)
             self.pre_interaction_features = X.columns[self.pre_interaction_model.coef_ != 0]
             X = X[self.pre_interaction_features]
-            print(f'Selected features: {self.pre_interaction_features}')
+            #print(f'Selected features: {self.pre_interaction_features}')
 
         self.poly = PolynomialFeatures(degree=self.size_interactions, interaction_only=True)
         self.poly.fit(X)
@@ -306,8 +307,8 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
         
         Chi = pd.DataFrame(self.poly.transform(X), columns=list(map(lambda f: tuple(f), poly_features))).loc[:, self.features]
 
-        print('Post-interaction model fitting')
-        print(Chi.shape)
+        #print('Post-interaction model fitting')
+        #print(Chi.shape)
         
         Chi.drop(columns = [('1',)], inplace=True)
 
@@ -322,7 +323,7 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
         
         self.post_interaction_features = Chi.columns[self.post_interaction_model.coef_ != 0]
 
-        print('Re-fitting with LogisticRegression with L1 penalty')
+        #print('Re-fitting with LogisticRegression with L1 penalty')
         Chi[('1',)] = 1
         Chi_post_sparsity = Chi[np.array([('1',)]+list(self.post_interaction_features), dtype=object)]
         
