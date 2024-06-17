@@ -215,6 +215,11 @@ class TabDLM:
             print(best)
         best['train'] = self._evaluate(data, "train")
         self.best = best
+        
+        
+        model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
+        self.num_params = sum([np.prod(p.size()) for p in model_parameters])
+        
     def predict(self, X):
         self.model.eval()
         
