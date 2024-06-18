@@ -28,7 +28,7 @@ class FTDistill:
                  post_lam1=1.0, 
                  post_lam2=1.0,
                  post_max_features=0.1,
-                 size_interactions=2,  
+                 size_interactions=3,  
                  re_fit_alpha=None):
         
         self.pre_interaction = pre_interaction
@@ -165,7 +165,7 @@ class FTDistillRegressor(FTDistill):
                  post_lam1=1.0, 
                  post_lam2=1.0,
                  post_max_features=0.1,
-                 size_interactions=2,  
+                 size_interactions=3,  
                  re_fit_alpha=None):
         super().__init__(pre_interaction, pre_lam1, pre_lam2, pre_max_features, 
                          post_interaction, post_lam1, post_lam2, post_max_features, 
@@ -182,7 +182,7 @@ class FTDistillRegressorCV(FTDistillRegressor):
                  post_lam1=0.1, 
                  post_lam2=0.1,
                  post_max_features=0.1,
-                 size_interactions=2,  
+                 size_interactions=3,  
                  re_fit_alpha=[0.1, 1.0, 10],
                  cv=3):
         super().__init__(pre_interaction, pre_lam1, pre_lam2, pre_max_features, 
@@ -263,7 +263,7 @@ class FTDistillClassifier(FTDistill):
                  post_lam1=1.0, 
                  post_lam2=1.0,
                  post_max_features=0.1,
-                 size_interactions=2,  
+                 size_interactions=3,  
                  re_fit_alpha=1.0):
         super().__init__(pre_interaction, pre_lam1, pre_lam2, pre_max_features, 
                          post_interaction, post_lam1, post_lam2, post_max_features, 
@@ -281,7 +281,7 @@ class FTDistillClassifierCV(FTDistillRegressorCV):
                  post_lam1=None, 
                  post_lam2=None,
                  post_max_features=0.1,
-                 size_interactions=2,  
+                 size_interactions=3,  
                  re_fit_alpha=[0.1, 1.0, 10],
                  cv=3):
         super().__init__(pre_interaction, pre_lam1, pre_lam2, pre_max_features, 

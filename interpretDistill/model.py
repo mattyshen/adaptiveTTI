@@ -28,7 +28,7 @@ def get_model(task_type, model_name, args):
                  n_epochs=args.n_epochs)
         elif model_name == 'ft_distill': 
             model = FTDistillRegressorCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
-                 post_interaction=args.post_interaction, post_max_features=args.post_max_features)
+                 post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.size_interactions)
         else:
             print('Invalid model_name: {}; returning None model'.format(model_name))
             model = None
@@ -56,7 +56,7 @@ def get_model(task_type, model_name, args):
                  n_epochs=args.n_epochs)
         elif model_name == 'ft_distill': 
             model = FTDistillClassifierCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
-                 post_interaction=args.post_interaction, post_max_features=args.post_max_features)
+                 post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.size_interactions)
         else:
             print('Invalid model_name: {}; returning None model'.format(model_name))
             model = None

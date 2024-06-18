@@ -25,11 +25,14 @@ import interpretDistill.model
 import interpretDistill.data
 
 
-def fit_model(model, X_train, y_train, feature_names, r):
+def fit_model(model, X_train, y_train, feature_names, no_interaction, r):
     # fit the model
     fit_parameters = inspect.signature(model.fit).parameters.keys()
     if "feature_names" in fit_parameters and feature_names is not None:
         model.fit(X_train, y_train, feature_names=feature_names)
+    elif "no_interaction" in fit_parameters and len(no_interaction) > 0:
+        #ft_distill models
+        model.fit(X_train, y_train, no_interaction=no_interaction)
     else:
         model.fit(X_train, y_train)
 
@@ -64,7 +67,12 @@ def add_main_args(parser):
 
     # dataset args
     parser.add_argument(
-        "--dataset_name", type=str, default="ca_housing", help="name of dataset"
+        "--dataset_name", 
+        type=str, 
+        choices=["ca_housing", "abalone", "parkinsons", "data_airfoil", "cpu_act", "data_concrete", "data_powerplant", 
+                 "miami_housing", "data_insurance", "data_qsar", "data_allstate", "data_mercedes", "data_transaction"],
+        default="ca_housing", 
+        help="name of dataset"
     )
     parser.add_argument(
         "--subsample_frac", type=float, default=0.2, help="fraction of samples to use for test set"
@@ -132,6 +140,12 @@ def add_main_args(parser):
     parser.add_argument(
         "--n_epochs", type=int, default=100, help="number of epochs for DL based models"
     )
+    parser.add_argument(
+        "--gpu", type=int, choices=[0, 1, 2, 3, 4], default=0, help="gpu"
+    )
+    parser.add_argument(
+        "--size_interactions", type=int, default=3, help="size of largest interactions for ft_distill models"
+    )
     return parser
 
 
@@ -184,6 +198,7 @@ if __name__ == "__main__":
 
     # load model
     featurizer = interpretDistill.model.get_model(args.task_type, args.featurizer_name, args)
+    no_interaction = []
     
     if featurizer is not None:
         X_train, X_f, y_train, y_f = train_test_split(
@@ -197,6 +212,8 @@ if __name__ == "__main__":
         if args.featurizer_overlap:
             X_train = pd.concat([X_train, X_f]).reset_index(drop=True)
             y_train = pd.concat([y_train, y_f]).reset_index(drop=True)
+        
+        no_interaction = featurizer.no_interaction
     
     model = interpretDistill.model.get_model(args.task_type, args.model_name, args)
     
@@ -215,11 +232,11 @@ if __name__ == "__main__":
     # fit
     feature_names = list(X_train.columns)
     
-    r, model = fit_model(model, X_train, y_train, feature_names, r)
+    r, model = fit_model(model, X_train, y_train, feature_names, [], r)
     r = evaluate_model(model, args.model_name, 'true', args.task_type, X_train, X_test, y_train, y_test, r)
     
     if featurizer is not None:
-        r, model_f = fit_model(model_f, X_train, y_train, feature_names, r)
+        r, model_f = fit_model(model_f, X_train, y_train, feature_names, no_interaction, r)
         r = evaluate_model(model_f, args.model_name+'_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
 
 
