@@ -5,6 +5,7 @@ from typing import Dict, Literal
 warnings.simplefilter("ignore")
 import delu 
 import numpy as np
+import pandas as pd
 import scipy.special
 import sklearn.datasets
 import sklearn.metrics
@@ -63,6 +64,8 @@ class TabDLM:
 
     def fit(self, X_train, y_train):
         
+        #print(X_train)
+        
         if self.task_type == "regression":
             Y = y_train.to_numpy().astype(np.float32)
         else:
@@ -74,8 +77,10 @@ class TabDLM:
             
         train_idx, val_idx = sklearn.model_selection.train_test_split(np.arange(len(Y)), train_size=self.val_prop, random_state=self.seed)
         
-        X_cont = X_train.select_dtypes(include=['float64', 'float32']).astype(np.float32)
-        X_cat = X_train.drop(columns = X_cont.columns).astype(np.float32)
+        is_continuous = X_train.apply(lambda col: pd.api.types.is_float_dtype(col) and len(col.unique()) > 20)
+
+        X_cont = X_train.loc[:, is_continuous]
+        X_cat = X_train.loc[:, ~is_continuous]
         
         data_numpy = {
             "train": {"x_cont": X_cont.iloc[train_idx, :].to_numpy().astype(np.float32), "y": Y[train_idx]},
@@ -299,7 +304,7 @@ class TabDLM:
             if self.all_cat_bin:
                 x_cat_ohe = (
                 [
-                    column
+                    column.long()
                     for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)
                 ]
                 if "x_cat" in batch
@@ -308,17 +313,23 @@ class TabDLM:
             else:
                 x_cat_ohe = (
                     [
-                        F.one_hot(column, cardinality)
+                        F.one_hot(column.long(), cardinality)
                         for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)
                     ]
                     if "x_cat" in batch
                     else []
                 )
+                #print(len(x_cat_ohe), x_cat_ohe[0].shape, batch["x_cont"].shape)
+            #print(f'cat cards: {self.cat_cardinalities}')
+            #print([sum(t.isnan()) for t in [batch["x_cont"]] + x_cat_ohe])
             return self.model(torch.column_stack([batch["x_cont"]] + x_cat_ohe)).squeeze(-1)
 
         elif isinstance(self.model, FTTransformer):
             if self.n_cont_features != 0:
-                return self.model(batch["x_cont"], batch.get("x_cat")).squeeze(-1)
+                if batch.get("x_cat") is None:  
+                    return self.model(batch["x_cont"], batch.get("x_cat")).squeeze(-1)
+                else:
+                    return self.model(batch["x_cont"], batch.get("x_cat").long()).squeeze(-1)
             else:
                 return self.model(None, batch.get("x_cat").long()).squeeze(-1)
         else:

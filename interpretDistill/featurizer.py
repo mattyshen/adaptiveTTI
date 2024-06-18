@@ -8,6 +8,7 @@ from sklearn.base import clone
 import os
 
 from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+#from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
 class RegFeaturizer:
     def __init__(self, depth=2, bit=True, seed=0):
@@ -25,7 +26,7 @@ class RegFeaturizer:
     def fit(self, X, y):
         for feature_name in X.columns:
             feature = X[feature_name]
-            if np.issubdtype(feature.dtype, np.number):
+            if pd.api.types.is_float_dtype(feature) and len(feature.unique()) > 20:
                 unique_vals = feature.unique()
                 if len(unique_vals) == 2:
                     self.maps[feature_name] = binary_map(feature)
@@ -82,7 +83,7 @@ class RegFeaturizer:
                     self.sizes[feature_name] = len(new_columns)
             else:
                 if self.bit:
-                    df_transformed, new_columns = bit_repr(feature, self.depth)
+                    df_transformed, new_columns = bit_repr(feature, int(np.ceil(np.log2(len(feature.unique())))))
                     #self.no_interaction.append(set(new_columns))
                     transformed_X.reset_index(drop=True, inplace=True)
                     df_transformed.reset_index(drop=True, inplace=True)

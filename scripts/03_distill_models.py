@@ -42,14 +42,14 @@ params_coupled_dict = {(
    posti,
    postmf
   )
- for dn in ['ca_housing']
+ for dn in ['ca_housing', 'parkinsons', 'airfoil', 'powerplant']
  for sf in [0.2]
  for mn in ["resnet", "ft_transformer"]
  for din in ["figs"]
  for fn in ["no_featurizer"]
- for ff in [0.33, 0.5, 0.75]
- for fo in [0, 1]
- for d in [2, 3]
+ for ff in [0]
+ for fo in [0]
+ for d in [0]
  for prei in ["l0l2", "l1l2"]
  for premf in [0.5]
  for posti in ["l0l2"]

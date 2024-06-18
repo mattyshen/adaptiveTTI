@@ -67,8 +67,8 @@ def add_main_args(parser):
     parser.add_argument(
         "--dataset_name", 
         type=str, 
-        choices=["ca_housing", "abalone", "parkinsons", "data_airfoil", "cpu_act", "data_concrete", "data_powerplant", 
-                 "miami_housing", "data_insurance", "data_qsar", "data_allstate", "data_mercedes", "data_transaction"],
+        choices=["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", 
+                 "miami_housing", "insurance", "qsar", "allstate", "mercedes", "transaction"],
         default="ca_housing", 
         help="name of dataset"
     )
@@ -120,7 +120,10 @@ def add_main_args(parser):
     parser.add_argument(
         "--max_depth", type=int, default=4, help="max depth of tree based models (RF, XGB)")
     parser.add_argument(
-        "--max_rules", type=int, default=10, help="max rules of FIGS model"
+        "--max_rules", type=int, default=60, help="max rules of FIGS model"
+    )
+    parser.add_argument(
+        "--max_trees", type=int, default=30, help="max trees of FIGS model"
     )
     parser.add_argument(
         "--pre_interaction", 
@@ -240,20 +243,20 @@ if __name__ == "__main__":
     feature_names = list(X_train.columns)
     
     # fit
-    r, model = fit_model(model, X_train, y_train, feature_names, r)
+    r, model = fit_model(model, X_train, y_train, feature_names, no_interaction, r)
     y_train_teacher = model.predict(X_train)
     y_train_teacher = pd.Series(y_train_teacher, name = y_train.name)
-    r, distiller = fit_model(distiller, X_train, y_train_teacher, feature_names, r)
+    r, distiller = fit_model(distiller, X_train, y_train_teacher, feature_names, no_interaction, r)
     
     r = evaluate_model(model, 'teacher', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
     r = evaluate_model(distiller, 'distiller', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
     r = evaluate_model(distiller, 'distiller', 'teacher', args.task_type, X_train, X_test, model.predict(X_train), model.predict(X_test), r)
     
     if featurizer is not None:
-        r, model_f = fit_model(model_f, X_train, y_train, feature_names, r)
+        r, model_f = fit_model(model_f, X_train, y_train, feature_names, no_interaction, r)
         y_train_teacher_f = model_f.predict(X_train)
         y_train_teacher_f = pd.Series(y_train_teacher_f, name = y_train.name)
-        r, distiller_f = fit_model(distiller_f, X_train, y_train_teacher_f, feature_names, r)
+        r, distiller_f = fit_model(distiller_f, X_train, y_train_teacher_f, feature_names, no_interaction, r)
         
         r = evaluate_model(model_f, 'teacher_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
         r = evaluate_model(distiller_f, 'distiller_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)

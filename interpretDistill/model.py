@@ -13,7 +13,7 @@ def get_model(task_type, model_name, args):
         elif model_name == 'random_forest':
             model = RandomForestRegressor(max_depth=args.max_depth)
         elif model_name == 'figs':
-            model = FIGSRegressor(max_rules=args.max_rules)
+            model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees)
         elif model_name == 'xgboost':
             model = xgb.XGBRegressor(max_depth=args.max_depth)
         elif model_name == 'resnet':
@@ -39,7 +39,7 @@ def get_model(task_type, model_name, args):
         elif model_name == 'random_forest':
             model = RandomForestClassifier(max_depth=args.max_depth)
         elif model_name == 'figs':
-            model = FIGSClassifier(max_rules=args.max_rules)
+            model = FIGSClassifier(max_rules=args.max_rules, max_trees=args.max_trees)
         elif model_name == 'xgboost':
             model = xgb.XGBClassifier(max_depth=args.max_depth)
         elif model_name == 'resnet':

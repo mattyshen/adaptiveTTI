@@ -40,7 +40,7 @@ params_coupled_dict = {(
    posti,
    postmf
   )
- for dn in ['ca_housing']
+ for dn in ['ca_housing', 'parkinsons', 'airfoil', 'powerplant', 'miami_housing']
  for sf in [0.2]
  for mn in ["figs", "resnet", "ft_transformer", "ft_distill"]
  for fn in ["no_featurizer", "featurizer"]
