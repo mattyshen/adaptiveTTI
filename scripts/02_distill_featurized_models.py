@@ -64,7 +64,7 @@ args_list = submit_utils.get_args_list(
 )
 submit_utils.run_args_list(
     args_list,
-    script_name=join(repo_dir, 'experiments', '02_distill_model.py'),
+    script_name=join(repo_dir, 'experiments', '02_distill_featurized_model.py'),
     actually_run=True,
     n_cpus=len(os.sched_getaffinity(0)),
 )

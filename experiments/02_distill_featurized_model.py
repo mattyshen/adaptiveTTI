@@ -137,6 +137,9 @@ def add_main_args(parser):
     parser.add_argument(
         "--n_epochs", type=int, default=100, help="number of epochs for DL based models"
     )
+    parser.add_argument(
+        "--gpu", type=int, choices=[0, 1, 2, 3, 4], default=0, help="gpu"
+    )
     return parser
 
 

@@ -29,13 +29,15 @@ class TabDLM:
                  val_prop=0.2,
                  model_params={}, 
                  device=None, 
-                 cuda=0,
+                 gpu=0,
                  verbose=False,
                  seed=0):
+        
         if device is None:
-            self.device = torch.device(f'cuda:{cuda}' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
         else:
-            self.device = device
+            gpu_map = {2:0, 3:1, 0:2, 1:3}
+            self.device = torch.device(f'cuda:{gpu_map[gpu]}' if torch.cuda.is_available() else 'cpu')
         
         self.model_type = model_type
         self.task_type = task_type
@@ -46,6 +48,7 @@ class TabDLM:
         self.batch_size = batch_size
         self.val_prop = val_prop
         self.model_params = model_params
+        self.gpu = gpu
 
         self.loss_fn = (
                         F.binary_cross_entropy_with_logits

@@ -8,7 +8,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
-    'seed': [0, 1, 2],
+    'seed': [0],
     'save_dir': [join(repo_dir, 'results')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
 }
@@ -64,7 +64,7 @@ args_list = submit_utils.get_args_list(
 )
 submit_utils.run_args_list(
     args_list,
-    script_name=join(repo_dir, 'experiments', '02_distill_model.py'),
+    script_name=join(repo_dir, 'experiments', '03_distill_model.py'),
     actually_run=True,
     n_cpus=len(os.sched_getaffinity(0)),
 )
