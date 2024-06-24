@@ -104,16 +104,15 @@ def binary_map(arr):
     else:
         return {unique_values[0]: 0, unique_values[1]: 1}
     
-def bit_repr(column, K):
+def bit_repr(column, mapping, empty_cat):
     
-    unique_values = sorted(column.unique())
-    
-    assert len(unique_values) <= 2**K
-    
-    mapping = {val: i for i, val in enumerate(unique_values)}
     column_mapped = column.map(mapping)
-
+    
+    K = int(np.ceil(np.log2(len(mapping.keys()))+empty_cat))
+    print(mapping.keys())
+    
     binary_representations = column_mapped.apply(lambda x: np.binary_repr(x, width=K)).apply(lambda x: pd.Series(list(x)))
+
     new_columns = [f'{column.name}_bit{i}' for i in range(K)]
     binary_representations.columns = new_columns
 

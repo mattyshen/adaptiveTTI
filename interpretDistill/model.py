@@ -1,6 +1,7 @@
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 import xgboost as xgb
 from imodels import FIGSRegressor, FIGSClassifier
+from imodels.importance import RandomForestPlusRegressor, RandomForestPlusClassifier
 
 from interpretDistill.fourierDistill import FTDistillRegressorCV, FTDistillClassifierCV
 from interpretDistill.featurizer import RegFeaturizer, ClassFeaturizer
@@ -12,6 +13,9 @@ def get_model(task_type, model_name, args):
             model = RegFeaturizer(depth=args.depth, bit=args.bit)
         elif model_name == 'random_forest':
             model = RandomForestRegressor(max_depth=args.max_depth)
+        elif model_name == 'rf_plus':
+            rf_model = RandomForestRegressor(max_depth=args.max_depth)
+            model = RandomForestPlusRegressor(rf_model=rf_model)
         elif model_name == 'figs':
             model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees)
         elif model_name == 'xgboost':
@@ -38,6 +42,9 @@ def get_model(task_type, model_name, args):
             model = ClassFeaturizer(depth=args.depth, bit=args.bit)
         elif model_name == 'random_forest':
             model = RandomForestClassifier(max_depth=args.max_depth)
+        elif model_name == 'rf_plus':
+            rf_model = RandomForestClassifier(max_depth=args.max_depth)
+            model = RandomForestPlusClassifier(rf_model=rf_model)
         elif model_name == 'figs':
             model = FIGSClassifier(max_rules=args.max_rules, max_trees=args.max_trees)
         elif model_name == 'xgboost':

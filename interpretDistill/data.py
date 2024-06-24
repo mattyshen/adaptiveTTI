@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
+from copy import deepcopy
 
 import sklearn.datasets
 import openml
@@ -240,7 +241,7 @@ def load_tabular_dataset(dataset_name, args):
         return None
     else:
         return None
-    return X, y, args
+    return X.copy(deep=True), y.copy(deep=True), args
 
 def load_huggingface_dataset(dataset_name, subsample_frac=1.0):
     """Load text dataset from huggingface (with train/validation spltis) + return the relevant dataset key

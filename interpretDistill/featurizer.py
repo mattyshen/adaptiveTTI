@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from collections import defaultdict
 
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
@@ -7,11 +8,11 @@ from sklearn.base import clone
 
 import os
 
-from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
-#from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+#from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
 class RegFeaturizer:
-    def __init__(self, depth=2, bit=True, seed=0):
+    def __init__(self, depth=2, bit=1, empty_cat=1, seed=0):
         self.depth = depth
         self.dt = DecisionTreeRegressor(max_depth=self.depth, random_state=seed)
         self.dt_models = {}
@@ -22,11 +23,12 @@ class RegFeaturizer:
         self.bit = bit
         self.sizes = {}
         self.seed=seed
+        self.empty_cat=empty_cat
     
     def fit(self, X, y):
         for feature_name in X.columns:
             feature = X[feature_name]
-            if pd.api.types.is_float_dtype(feature) and len(feature.unique()) > 20:
+            if pd.api.types.is_float_dtype(feature) and len(feature.unique()) > 10:
                 unique_vals = feature.unique()
                 if len(unique_vals) == 2:
                     self.maps[feature_name] = binary_map(feature)
@@ -34,16 +36,21 @@ class RegFeaturizer:
                 else:
                     dt = clone(self.dt)
                     dt.fit(feature.values.reshape(-1, 1), y)
+                    mapping = defaultdict(lambda: 0)
+                    unique_values = sorted(np.unique(dt.apply(feature.values.reshape(-1, 1))))
+                    mapping.update({val: i+self.empty_cat for i, val in enumerate(unique_values)})
                     self.dt_models[feature_name] = dt
+                    self.maps[feature_name] = mapping
                     self.feature_types[feature_name] = 'continuous'
             else:
                 if self.bit:
-                    # lb = LabelBinarizer()
-                    # lb.fit(feature.to_list())
-                    # self.encoders[feature_name] = lb
+                    unique_values = sorted(feature.unique())
+                    mapping = defaultdict(lambda: 0)
+                    mapping.update({val: i+self.empty_cat for i, val in enumerate(unique_values)})
+                    self.maps[feature_name] = mapping
                     self.feature_types[feature_name] = 'categorical'
                 else:
-                    encoder = OneHotEncoder(sparse_output=False)
+                    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore' if not self.empty_cat else 'infrequent_if_exist')
                     encoded_feature = encoder.fit_transform(feature.values.reshape(-1, 1))
                     self.encoders[feature_name] = encoder
                     self.feature_types[feature_name] = 'categorical'
@@ -67,14 +74,14 @@ class RegFeaturizer:
                 leaf_indices = dt_model.apply(feature.values.reshape(-1, 1))
                 all_cats = get_leaf_node_indices(dt_model.tree_)
                 if self.bit:
-                    df_transformed, new_columns = bit_repr(pd.Series(leaf_indices, name = f'{feature_name}_leaf'), self.depth)
+                    df_transformed, new_columns = bit_repr(pd.Series(leaf_indices, name = f'{feature_name}_leaf'), self.maps[feature_name], self.empty_cat)
                     #self.no_interaction.append(set(new_columns))
                     transformed_X.reset_index(drop=True, inplace=True)
                     df_transformed.reset_index(drop=True, inplace=True)
                     transformed_X = pd.concat([transformed_X, df_transformed], axis = 1)
                     self.sizes[feature_name] = df_transformed.shape[1]
                 else:
-                    ohe = OneHotEncoder(categories = [all_cats], sparse_output=False)
+                    ohe = OneHotEncoder(categories = [all_cats], sparse_output=False, handle_unknown='ignore' if not self.empty_cat else 'infrequent_if_exist')
                     encoded = ohe.fit_transform(leaf_indices.reshape(-1, 1))
                     new_columns = ohe.get_feature_names_out([feature_name])
                     self.no_interaction.append(set(new_columns))
@@ -83,7 +90,7 @@ class RegFeaturizer:
                     self.sizes[feature_name] = len(new_columns)
             else:
                 if self.bit:
-                    df_transformed, new_columns = bit_repr(feature, int(np.ceil(np.log2(len(feature.unique())))))
+                    df_transformed, new_columns = bit_repr(feature, self.maps[feature_name], self.empty_cat)
                     #self.no_interaction.append(set(new_columns))
                     transformed_X.reset_index(drop=True, inplace=True)
                     df_transformed.reset_index(drop=True, inplace=True)
