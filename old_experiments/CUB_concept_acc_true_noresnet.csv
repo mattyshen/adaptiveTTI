@@ -1,5 +1,0 @@
-,Model,Train Acc,Val Acc,Test Acc,Train Time,Total Num Features,Avg Num Selected Features
-0,"(concept, true, train)",1.0,1.0,1.0,594.0833461284637,6329,22.73
-1,"(concept, true, val)",1.0,1.0,1.0,210.8090569972992,6329,25.64
-2,"(concept, true, tv)",1.0,1.0,1.0,774.9234902858734,6329,23.565
-3,ResNet18 CUB,0.9059633027522935,0.8973288814691152,0.6164998274076631,-1.0,-1,-1.0
