@@ -9,7 +9,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [0],
-    'save_dir': [join(repo_dir, 'results')],
+    'save_dir': [join(repo_dir, 'results/02_distill_featurized_model')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
 }
 
@@ -17,39 +17,36 @@ params_shared_dict = {
 # Note: this is a dictionary so you shouldn't have repeated keys
 params_coupled_dict = {( 
   'dataset_name', 
-  'subsample_frac',
   'model_name',
   'distiller_name',
   'featurizer_name',
   'featurizer_frac',
-  'featurizer_overlap',
   'depth',
+  'bit',
   'pre_interaction',
   'pre_max_features',
   'post_interaction',
   'post_max_features'
  ):
  [(dn,
-   sf,
    mn,
    din,
    fn,
    ff,
-   fo,
    d,
+   b,
    prei,
    premf,
    posti,
    postmf
   )
- for dn in ['ca_housing', 'parkinsons', 'airfoil', 'powerplant']
- for sf in [0.2]
+ for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing", "insurance", "qsar", "allstate", "mercedes", "transaction"]
  for mn in ["resnet", "ft_transformer"]
  for din in ["figs", "ft_distill"]
  for fn in ["featurizer"]
- for ff in [0.33, 0.5, 0.75]
- for fo in [0, 1]
+ for ff in [0.3, 0.7]
  for d in [2, 3]
+ for b in [0,1]
  for prei in ["l0l2", "l1l2"]
  for premf in [0.5]
  for posti in ["l0l2"]

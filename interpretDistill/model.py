@@ -12,12 +12,12 @@ def get_model(task_type, model_name, args):
         if model_name == 'featurizer':
             model = RegFeaturizer(depth=args.depth, bit=args.bit)
         elif model_name == 'random_forest':
-            model = RandomForestRegressor(max_depth=args.max_depth)
+            model = RandomForestRegressor(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
         elif model_name == 'rf_plus':
-            rf_model = RandomForestRegressor(max_depth=args.max_depth)
+            rf_model = RandomForestRegressor(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
             model = RandomForestPlusRegressor(rf_model=rf_model)
         elif model_name == 'figs':
-            model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees)
+            model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_features=args.max_features)
         elif model_name == 'xgboost':
             model = xgb.XGBRegressor(max_depth=args.max_depth)
         elif model_name == 'resnet':
@@ -34,19 +34,18 @@ def get_model(task_type, model_name, args):
             model = FTDistillRegressorCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
                  post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.size_interactions)
         else:
-            print('Invalid model_name: {}; returning None model'.format(model_name))
             model = None
         return model
     elif task_type in ['binary', 'multiclass', 'classification']:
         if model_name == 'featurizer':
             model = ClassFeaturizer(depth=args.depth, bit=args.bit)
         elif model_name == 'random_forest':
-            model = RandomForestClassifier(max_depth=args.max_depth)
+            model = RandomForestClassifier(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
         elif model_name == 'rf_plus':
-            rf_model = RandomForestClassifier(max_depth=args.max_depth)
+            rf_model = RandomForestClassifier(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
             model = RandomForestPlusClassifier(rf_model=rf_model)
         elif model_name == 'figs':
-            model = FIGSClassifier(max_rules=args.max_rules, max_trees=args.max_trees)
+            model = FIGSClassifier(max_rules=args.max_rules, max_trees=args.max_trees, max_features=args.max_features)
         elif model_name == 'xgboost':
             model = xgb.XGBClassifier(max_depth=args.max_depth)
         elif model_name == 'resnet':
@@ -65,7 +64,6 @@ def get_model(task_type, model_name, args):
             model = FTDistillClassifierCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
                  post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.size_interactions)
         else:
-            print('Invalid model_name: {}; returning None model'.format(model_name))
             model = None
         return model
     else:

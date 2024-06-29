@@ -33,13 +33,15 @@ def fit_model(model, X_train, y_train, feature_names, no_interaction, r):
     elif "no_interaction" in fit_parameters and len(no_interaction) > 0:
         #ft_distill models
         model.fit(X_train, y_train, no_interaction=no_interaction)
+    elif type(model) == imodels.importance.rf_plus.RandomForestPlusRegressor:
+        model.fit(X_train, y_train.to_numpy())
     else:
         model.fit(X_train, y_train)
 
     return r, model
 
 
-def evaluate_model(model, model_name, comp, task, X_train, X_test, y_train, y_test, r):
+def evaluate_model(model, comp, task, X_train, X_val, y_train, y_val, r):
     """Evaluate model performance on each split"""
     if task == 'regression':
         metrics = {
@@ -50,7 +52,7 @@ def evaluate_model(model, model_name, comp, task, X_train, X_test, y_train, y_te
             "accuracy": accuracy_score,
         }
     for split_name, (X_, y_) in zip(
-        ["train", "test"], [(X_train, y_train), (X_test, y_test)]
+        ["train", "val"], [(X_train, y_train), (X_val, y_val)]
     ):
         y_pred_ = model.predict(X_)
         for metric_name, metric_fn in metrics.items():
@@ -75,7 +77,7 @@ def add_main_args(parser):
         help="name of dataset"
     )
     parser.add_argument(
-        "--subsample_frac", type=float, default=0.2, help="fraction of samples to use for test set"
+        "--subsample_frac", type=float, default=0.25, help="fraction of samples to use for val set"
     )
 
     # training misc args
@@ -93,7 +95,7 @@ def add_main_args(parser):
     parser.add_argument(
         "--model_name",
         type=str,
-        choices=["featurizer", "random_forest", "figs", "xgboost", "resnet", "ft_transformer", "ft_distill"],
+        choices=["featurizer", "random_forest", "figs", "xgboost", "resnet", "ft_transformer", "ft_distill", "rf_plus"],
         default="ft_transformer",
         help="name of (teacher, if distillation) model",
     )
@@ -101,7 +103,7 @@ def add_main_args(parser):
         "--featurizer_name", type=str, default="no_featurizer", help="type of featurizer to discretize dataset"
     )
     parser.add_argument(
-        "--featurizer_frac", type=float, default=0.33, help="fraction of train samples to fit featurizer"
+        "--featurizer_frac", type=float, default=0.3, help="fraction of train samples to fit featurizer"
     )
     parser.add_argument(
         "--featurizer_overlap", type=int, default=1, help="dictate whether featurizer samples and train samples are combined"
@@ -114,6 +116,8 @@ def add_main_args(parser):
     )
     parser.add_argument(
         "--max_depth", type=int, default=4, help="max depth of tree based models (RF, XGB)")
+    parser.add_argument(
+        "--max_features", type=float, default=1, help="max features of tree based models (RF, XGB)")
     parser.add_argument(
         "--max_rules", type=int, default=60, help="max rules of FIGS model"
     )
@@ -144,7 +148,7 @@ def add_main_args(parser):
         "--n_epochs", type=int, default=100, help="number of epochs for DL based models"
     )
     parser.add_argument(
-        "--gpu", type=int, choices=[0, 1, 2, 3, 4], default=0, help="gpu"
+        "--gpu", type=int, choices=[0, 1, 2, 3, 4], default=1, help="gpu"
     )
     parser.add_argument(
         "--size_interactions", type=int, default=3, help="size of largest interactions for ft_distill models"
@@ -193,7 +197,8 @@ if __name__ == "__main__":
 
     X, y, args = interpretDistill.data.load_tabular_dataset(args.dataset_name, args)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args.subsample_frac, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=args.subsample_frac, random_state=args.seed)
 
     # load tabular data
     # https://csinva.io/imodels/util/data_util.html#imodels.util.data_util.get_clean_dataset
@@ -210,7 +215,7 @@ if __name__ == "__main__":
         X_f = featurizer.fit_transform(X_f, y_f)
         
         X_train = featurizer.transform(X_train)
-        X_test = featurizer.transform(X_test)
+        X_val = featurizer.transform(X_val)
         
         if args.featurizer_overlap:
             X_train = pd.concat([X_train, X_f]).reset_index(drop=True)
@@ -219,11 +224,7 @@ if __name__ == "__main__":
         no_interaction = featurizer.no_interaction
     
     model = interpretDistill.model.get_model(args.task_type, args.model_name, args)
-    
-    if featurizer is not None:
-        model_f = interpretDistill.model.get_model(args.task_type, args.model_name, args)
         
-
     # set up saving dictionary + save params file
     r = defaultdict(list)
     r.update(vars(args))
@@ -236,17 +237,12 @@ if __name__ == "__main__":
     feature_names = list(X_train.columns)
     
     r, model = fit_model(model, X_train, y_train, feature_names, no_interaction, r)
-    r = evaluate_model(model, args.model_name, 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-    
-    if featurizer is not None:
-        r, model_f = fit_model(model_f, X_train, y_train, feature_names, no_interaction, r)
-        r = evaluate_model(model_f, args.model_name+'_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-
+    r = evaluate_model(model, 'true', args.task_type, X_train, X_val, y_train, y_val, r)
 
     # save results
     print(f'save_dir_unique: {save_dir_unique}')
     joblib.dump(
         r, join(save_dir_unique, "results.pkl")
     )  # caching requires that this is called results.pkl
-    joblib.dump(model, join(save_dir_unique, "model.pkl"))
+    #joblib.dump(model, join(save_dir_unique, "model.pkl"))
     logging.info("Succesfully completed :)\n\n")

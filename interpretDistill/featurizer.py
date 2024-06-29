@@ -6,10 +6,12 @@ from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 from sklearn.base import clone
 
+from sklearn.mixture import GaussianMixture
+
 import os
 
-#from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
-from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+from interpretDistill.featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
+#from featurizer_utils import binary_map, bit_repr, get_leaf_node_indices
 
 class RegFeaturizer:
     def __init__(self, depth=2, bit=1, empty_cat=1, seed=0):
@@ -115,6 +117,107 @@ class RegFeaturizer:
     def fit_transform(self, X, y):
         self.fit(X,y)
         return self.transform(X)
+
+class GMMBinaryMapper:
+    def __init__(self, empty_cat=1, seed=0, max_gmm_components=3):
+        self.encoders = {}
+        self.maps = {}
+        self.feature_types = {}
+        self.no_interaction = []
+        self.sizes = {}
+        self.seed = seed
+        self.empty_cat = empty_cat
+        self.max_gmm_components = max_gmm_components
+    
+    def fit_gmm_and_find_intersections(self, data):
+        param_grid = {'n_components': np.arange(1, self.max_gmm_components+1)}
+        gmm = GaussianMixture()
+        grid_search = GridSearchCV(gmm, param_grid, cv=5)
+        grid_search.fit(data.reshape(-1, 1))
+        optimal_components = grid_search.best_params_['n_components']
+        
+        gmm = GaussianMixture(n_components=optimal_components)
+        gmm.fit(data.reshape(-1, 1))
+        
+        means = gmm.means_.flatten()
+        variances = gmm.covariances_.flatten()
+        
+        sorted_indices = np.argsort(means)
+        sorted_means = means[sorted_indices]
+        sorted_variances = variances[sorted_indices]
+        
+        intersections = []
+        
+        for i in range(len(sorted_means) - 1):
+            mu1, var1 = sorted_means[i], sorted_variances[i]
+            mu2, var2 = sorted_means[i + 1], sorted_variances[i + 1]
+
+            term1 = mu1*var2 - mu2*var1
+            term2 = np.sqrt(var1*var2) * np.sqrt((mu1 - mu2)**2 + (var2 - var1) * np.log(var2 / var1))
+            term3 = var2 - var1
+            intersections.append(((term1 + term2) / term3))
+        
+        return intersections
+    
+    def fit(self, X, y):
+        for feature_name in X.columns:
+            feature = X[feature_name]
+            if pd.api.types.is_float_dtype(feature) and len(feature.unique()) > 10:
+                unique_vals = feature.unique()
+                if len(unique_vals) == 2:
+                    self.maps[feature_name] = binary_map(feature)
+                    self.feature_types[feature_name] = 'binary'
+                else:
+                    intersections = self.fit_gmm_and_find_intersections(feature.values)
+                    mapping = defaultdict(lambda: 0)
+                    unique_values = sorted(np.unique(intersections))
+                    mapping.update({val: i + self.empty_cat for i, val in enumerate(unique_values)})
+                    self.maps[feature_name] = mapping
+                    self.feature_types[feature_name] = 'continuous'
+            else:
+                encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore' if not self.empty_cat else 'infrequent_if_exist')
+                encoded_feature = encoder.fit_transform(feature.values.reshape(-1, 1))
+                self.encoders[feature_name] = encoder
+                self.feature_types[feature_name] = 'categorical'
+                
+    def transform(self, X):
+        transformed_features = []
+        
+        for feature_name in X.columns:
+            feature = X[feature_name]
+            if self.feature_types[feature_name] == 'binary':
+                binary_map = self.maps[feature_name]
+                transformed_feature = feature.map(binary_map).fillna(0)
+                transformed_features.append(transformed_feature)
+                
+            elif self.feature_types[feature_name] == 'categorical':
+                encoder = self.encoders[feature_name]
+                transformed_feature = encoder.transform(feature.values.reshape(-1, 1))
+                transformed_features.append(pd.DataFrame(transformed_feature, columns=encoder.get_feature_names_out([feature_name])))
+            
+            elif self.feature_types[feature_name] == 'continuous':
+                intersections = self.maps[feature_name]
+                regions = []
+                
+                # Create regions based on intersections
+                for i in range(len(intersections) + 1):
+                    if i == 0:
+                        regions.append((feature <= intersections[i]).astype(int))
+                    elif i == len(intersections):
+                        regions.append((feature > intersections[i-1]).astype(int))
+                    else:
+                        regions.append(((feature > intersections[i-1]) & (feature <= intersections[i])).astype(int))
+                
+                for j, region in enumerate(regions):
+                    transformed_features.append(pd.Series(region, name=f'{feature_name}_region{j+1}'))
+        
+        return pd.concat(transformed_features, axis=1)
+
+# Example usage:
+# X and y are your data and target variables
+# rf = RegFeaturizer()
+# rf.fit(X, y)
+
 
     
 class ClassFeaturizer(RegFeaturizer):

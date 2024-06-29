@@ -109,7 +109,6 @@ def bit_repr(column, mapping, empty_cat):
     column_mapped = column.map(mapping)
     
     K = int(np.ceil(np.log2(len(mapping.keys()))+empty_cat))
-    print(mapping.keys())
     
     binary_representations = column_mapped.apply(lambda x: np.binary_repr(x, width=K)).apply(lambda x: pd.Series(list(x)))
 

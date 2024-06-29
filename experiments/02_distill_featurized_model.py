@@ -31,13 +31,15 @@ def fit_model(model, X_train, y_train, feature_names, no_interaction, r):
     elif "no_interaction" in fit_parameters and len(no_interaction) > 0:
         #ft_distill models
         model.fit(X_train, y_train, no_interaction=no_interaction)
+    elif type(model) == imodels.importance.rf_plus.RandomForestPlusRegressor:
+        model.fit(X_train, y_train.to_numpy())
     else:
         model.fit(X_train, y_train)
 
     return r, model
 
 
-def evaluate_model(model, model_name, comp, task, X_train, X_test, y_train, y_test, r):
+def evaluate_model(model, model_name, comp, task, X_train, X_val, y_train, y_val, r):
     """Evaluate model performance on each split"""
     if task == 'regression':
         metrics = {
@@ -48,7 +50,7 @@ def evaluate_model(model, model_name, comp, task, X_train, X_test, y_train, y_te
             "accuracy": accuracy_score,
         }
     for split_name, (X_, y_) in zip(
-        ["train", "test"], [(X_train, y_train), (X_test, y_test)]
+        ["train", "val"], [(X_train, y_train), (X_val, y_val)]
     ):
         y_pred_ = model.predict(X_)
         for metric_name, metric_fn in metrics.items():
@@ -73,7 +75,7 @@ def add_main_args(parser):
         help="name of dataset"
     )
     parser.add_argument(
-        "--subsample_frac", type=float, default=0.2, help="fraction of samples to use for test set"
+        "--subsample_frac", type=float, default=0.25, help="fraction of samples to use for val set"
     )
 
     # training misc args
@@ -103,7 +105,7 @@ def add_main_args(parser):
         help="name of distiller model",
     )
     parser.add_argument(
-        "--featurizer_name", type=str, default="no_featurizer", help="type of featurizer to discretize dataset"
+        "--featurizer_name", type=str, default="featurizer", help="type of featurizer to discretize dataset"
     )
     parser.add_argument(
         "--featurizer_frac", type=float, default=0.33, help="fraction of train samples to fit featurizer"
@@ -149,7 +151,7 @@ def add_main_args(parser):
         "--n_epochs", type=int, default=100, help="number of epochs for DL based models"
     )
     parser.add_argument(
-        "--gpu", type=int, choices=[0, 1, 2, 3, 4], default=0, help="gpu"
+        "--gpu", type=int, choices=[0, 1, 2, 3, 4], default=2, help="gpu"
     )
     parser.add_argument(
         "--size_interactions", type=int, default=3, help="size of largest interactions for ft_distill models"
@@ -195,17 +197,18 @@ if __name__ == "__main__":
     # set seed
     np.random.seed(args.seed)
     random.seed(args.seed)
-    # torch.manual_seed(args.seed)
+
     X, y, args = interpretDistill.data.load_tabular_dataset(args.dataset_name, args)
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args.subsample_frac, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+    X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=args.subsample_frac, random_state=args.seed)
 
     # load tabular data
     # https://csinva.io/imodels/util/data_util.html#imodels.util.data_util.get_clean_dataset
     # X_train, X_test, y_train, y_test, feature_names = imodels.get_clean_dataset('compas_two_year_clean', data_source='imodels', test_size=0.33)
 
     # load model
-    featurizer = interpretDistill.model.get_model(args.task_type, args.featurizer_name, args)
+    featurizer = deepcopy(interpretDistill.model.get_model(args.task_type, args.featurizer_name, args))
     no_interaction = []
     
     if featurizer is not None:
@@ -215,7 +218,7 @@ if __name__ == "__main__":
         X_f = featurizer.fit_transform(X_f, y_f)
         
         X_train = featurizer.transform(X_train)
-        X_test = featurizer.transform(X_test)
+        X_val = featurizer.transform(X_val)
         
         if args.featurizer_overlap:
             X_train = pd.concat([X_train, X_f]).reset_index(drop=True)
@@ -223,14 +226,9 @@ if __name__ == "__main__":
             
         no_interaction = featurizer.no_interaction
     
-    model = interpretDistill.model.get_model(args.task_type, args.model_name, args)
-    distiller = interpretDistill.model.get_model(args.task_type, args.distiller_name, args)
-    
-    if featurizer is not None:
-        model_f = interpretDistill.model.get_model(args.task_type, args.model_name, args)
-        distiller_f = interpretDistill.model.get_model(args.task_type, args.distiller_name, args)
+    model = deepcopy(interpretDistill.model.get_model(args.task_type, args.model_name, args))
+    distiller = deepcopy(interpretDistill.model.get_model(args.task_type, args.distiller_name, args))
         
-
     # set up saving dictionary + save params file
     r = defaultdict(list)
     r.update(vars(args))
@@ -247,24 +245,14 @@ if __name__ == "__main__":
     y_train_teacher = pd.Series(y_train_teacher, name = y_train.name)
     r, distiller = fit_model(distiller, X_train, y_train_teacher, feature_names, no_interaction, r)
     
-    r = evaluate_model(model, 'teacher', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-    r = evaluate_model(distiller, 'distiller', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-    r = evaluate_model(distiller, 'distiller', 'teacher', args.task_type, X_train, X_test, model.predict(X_train), model.predict(X_test), r)
-    
-    if featurizer is not None:
-        r, model_f = fit_model(model_f, X_train, y_train, feature_names, no_interaction, r)
-        y_train_teacher_f = model_f.predict(X_train)
-        y_train_teacher_f = pd.Series(y_train_teacher_f, name = y_train.name)
-        r, distiller_f = fit_model(distiller_f, X_train, y_train_teacher_f, feature_names, no_interaction, r)
-        
-        r = evaluate_model(model_f, 'teacher_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-        r = evaluate_model(distiller_f, 'distiller_f', 'true', args.task_type, X_train, X_test, y_train, y_test, r)
-        r = evaluate_model(distiller_f, 'distiller_f', 'teacher', args.task_type, X_train, X_test, model_f.predict(X_train), model_f.predict(X_test), r)
+    r = evaluate_model(model, 'teacher', 'true', args.task_type, X_train, X_val, y_train, y_val, r)
+    r = evaluate_model(distiller, 'distiller', 'true', args.task_type, X_train, X_val, y_train, y_val, r)
+    r = evaluate_model(distiller, 'distiller', 'teacher', args.task_type, X_train, X_val, model.predict(X_train), model.predict(X_val), r)
 
     # save results
     print(f'save_dir_unique: {save_dir_unique}')
     joblib.dump(
         r, join(save_dir_unique, "results.pkl")
     )  # caching requires that this is called results.pkl
-    joblib.dump(model, join(save_dir_unique, "model.pkl"))
+    #joblib.dump(model, join(save_dir_unique, "model.pkl"))
     logging.info("Succesfully completed :)\n\n")

@@ -39,6 +39,9 @@ class TabDLM:
         else:
             gpu_map = {2:0, 3:1, 0:2, 1:3}
             self.device = torch.device(f'cuda:{gpu_map[gpu]}' if torch.cuda.is_available() else 'cpu')
+            
+        #TODO: delete
+        self.device = torch.device('cpu')
         
         self.model_type = model_type
         self.task_type = task_type
@@ -77,15 +80,16 @@ class TabDLM:
             
         train_idx, val_idx = sklearn.model_selection.train_test_split(np.arange(len(Y)), train_size=self.val_prop, random_state=self.seed)
         
-        is_continuous = X_train.apply(lambda col: pd.api.types.is_float_dtype(col) and len(col.unique()) > 20)
+        self.is_continuous = X_train.apply(lambda col: pd.api.types.is_float_dtype(col) and len(col.unique()) > 10)
 
-        X_cont = X_train.loc[:, is_continuous]
-        X_cat = X_train.loc[:, ~is_continuous]
-        
+        X_cont = X_train.loc[:, self.is_continuous]
+        X_cat = X_train.loc[:, ~self.is_continuous]
+
         data_numpy = {
             "train": {"x_cont": X_cont.iloc[train_idx, :].to_numpy().astype(np.float32), "y": Y[train_idx]},
             "val": {"x_cont": X_cont.iloc[val_idx, :].to_numpy().astype(np.float32), "y": Y[val_idx]},
         }
+
         if len(X_cat.columns) > 0:
             data_numpy["train"]["x_cat"] = X_cat.iloc[train_idx, :].to_numpy()
             data_numpy["val"]["x_cat"] = X_cat.iloc[val_idx, :].to_numpy()
@@ -231,8 +235,8 @@ class TabDLM:
     def predict(self, X):
         self.model.eval()
         
-        X_cont = X.select_dtypes(include=['float64', 'float32']).astype(np.float32)
-        X_cat = X.drop(columns = X_cont.columns).astype(np.float32)
+        X_cont = X.loc[:, self.is_continuous].astype(np.float32)
+        X_cat = X.loc[:, ~self.is_continuous].astype(np.float32)
         
         data_numpy = {
             "test": {"x_cont": X_cont.to_numpy().astype(np.float32)},
@@ -311,9 +315,10 @@ class TabDLM:
                 else []
             )
             else:
+                print([(column.long(), cardinality) for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)] if "x_cat" in batch else [])
                 x_cat_ohe = (
                     [
-                        F.one_hot(column.long(), cardinality)
+                        F.one_hot(column.long(), cardinality).double()
                         for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)
                     ]
                     if "x_cat" in batch
@@ -322,6 +327,7 @@ class TabDLM:
                 #print(len(x_cat_ohe), x_cat_ohe[0].shape, batch["x_cont"].shape)
             #print(f'cat cards: {self.cat_cardinalities}')
             #print([sum(t.isnan()) for t in [batch["x_cont"]] + x_cat_ohe])
+            #print(batch["x_cont"].dtype, x_cat_ohe[0].dtype)
             return self.model(torch.column_stack([batch["x_cont"]] + x_cat_ohe)).squeeze(-1)
 
         elif isinstance(self.model, FTTransformer):
