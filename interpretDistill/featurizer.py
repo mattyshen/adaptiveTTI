@@ -5,8 +5,10 @@ from collections import defaultdict
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 from sklearn.base import clone
-
 from sklearn.mixture import GaussianMixture
+from sklearn.model_selection import GridSearchCV
+
+import matplotlib.pyplot as plt
 
 import os
 
@@ -118,6 +120,11 @@ class RegFeaturizer:
         self.fit(X,y)
         return self.transform(X)
 
+class ClassFeaturizer(RegFeaturizer):
+    def __init__(self, depth=2, bit=True, seed=0):
+        super().__init__(depth, bit, seed)
+        self.dt = DecisionTreeClassifier(max_depth=self.depth, random_state=seed)
+        
 class GMMBinaryMapper:
     def __init__(self, empty_cat=1, seed=0, max_gmm_components=3):
         self.encoders = {}
@@ -128,8 +135,30 @@ class GMMBinaryMapper:
         self.seed = seed
         self.empty_cat = empty_cat
         self.max_gmm_components = max_gmm_components
+        
+    def _plot_gmm_with_intersections(self, data, feature_name, gmm, intersections):
+        x = np.linspace(data.min(), data.max(), 1000)
+        pdf = np.exp(gmm.score_samples(x.reshape(-1, 1)))
+
+        plt.figure(figsize=(10, 6))
+        plt.hist(data, bins=30, density=True, alpha=0.6, color='gray')
+        plt.plot(x, pdf, '-k', lw=2)
+
+        # Plot each Gaussian component
+        for mean, cov in zip(gmm.means_, gmm.covariances_):
+            component_pdf = (1 / np.sqrt(2 * np.pi * cov)) * np.exp(-(x - mean)**2 / (2 * cov))
+            plt.plot(x, component_pdf.reshape(-1, ), '--', lw=2)
+
+        # Plot intersection lines
+        for intersection in intersections:
+            plt.axvline(x=intersection, color='r', linestyle='--')
+
+        plt.title(f'GMM for feature: {feature_name}')
+        plt.xlabel(feature_name)
+        plt.ylabel('Density')
+        plt.show()
     
-    def fit_gmm_and_find_intersections(self, data):
+    def _fit_gmm_and_find_intersections(self, data, feature_name, plot):
         param_grid = {'n_components': np.arange(1, self.max_gmm_components+1)}
         gmm = GaussianMixture()
         grid_search = GridSearchCV(gmm, param_grid, cv=5)
@@ -156,10 +185,13 @@ class GMMBinaryMapper:
             term2 = np.sqrt(var1*var2) * np.sqrt((mu1 - mu2)**2 + (var2 - var1) * np.log(var2 / var1))
             term3 = var2 - var1
             intersections.append(((term1 + term2) / term3))
+            
+        if plot:
+            self._plot_gmm_with_intersections(data, feature_name, gmm, intersections)
         
         return intersections
     
-    def fit(self, X, y):
+    def fit(self, X, plot=False):
         for feature_name in X.columns:
             feature = X[feature_name]
             if pd.api.types.is_float_dtype(feature) and len(feature.unique()) > 10:
@@ -168,11 +200,12 @@ class GMMBinaryMapper:
                     self.maps[feature_name] = binary_map(feature)
                     self.feature_types[feature_name] = 'binary'
                 else:
-                    intersections = self.fit_gmm_and_find_intersections(feature.values)
-                    mapping = defaultdict(lambda: 0)
-                    unique_values = sorted(np.unique(intersections))
-                    mapping.update({val: i + self.empty_cat for i, val in enumerate(unique_values)})
-                    self.maps[feature_name] = mapping
+                    intersections = self._fit_gmm_and_find_intersections(feature.values, feature_name, plot)
+                    # mapping = defaultdict(lambda: 0)
+                    # unique_values = sorted(np.unique(intersections))
+                    # mapping.update({val: i + self.empty_cat for i, val in enumerate(unique_values)})
+                    # self.maps[feature_name] = mapping
+                    self.maps[feature_name] = intersections
                     self.feature_types[feature_name] = 'continuous'
             else:
                 encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore' if not self.empty_cat else 'infrequent_if_exist')
@@ -212,15 +245,3 @@ class GMMBinaryMapper:
                     transformed_features.append(pd.Series(region, name=f'{feature_name}_region{j+1}'))
         
         return pd.concat(transformed_features, axis=1)
-
-# Example usage:
-# X and y are your data and target variables
-# rf = RegFeaturizer()
-# rf.fit(X, y)
-
-
-    
-class ClassFeaturizer(RegFeaturizer):
-    def __init__(self, depth=2, bit=True, seed=0):
-        super().__init__(depth, bit, seed)
-        self.dt = DecisionTreeClassifier(max_depth=self.depth, random_state=seed)
