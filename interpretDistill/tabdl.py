@@ -16,8 +16,12 @@ import torch.nn.functional as F
 import torch.optim
 from torch import Tensor
 from tqdm.std import tqdm
+import os
 
 from rtdl_revisiting_models import MLP, ResNet, FTTransformer
+
+from interpretDistill.continuous import is_continuous
+#from continuous import is_continuous
 
 class TabDLM:
     def __init__(self, 
@@ -38,10 +42,7 @@ class TabDLM:
             self.device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
         else:
             gpu_map = {2:0, 3:1, 0:2, 1:3}
-            self.device = torch.device(f'cuda:{gpu_map[gpu]}' if torch.cuda.is_available() else 'cpu')
-            
-        #TODO: delete
-        self.device = torch.device('cpu')
+            self.device = torch.device(f'cuda:{gpu_map[int(os.getpid() % 4)]}' if torch.cuda.is_available() else 'cpu')
         
         self.model_type = model_type
         self.task_type = task_type
@@ -80,7 +81,7 @@ class TabDLM:
             
         train_idx, val_idx = sklearn.model_selection.train_test_split(np.arange(len(Y)), train_size=self.val_prop, random_state=self.seed)
         
-        self.is_continuous = X_train.apply(lambda col: pd.api.types.is_float_dtype(col) and len(col.unique()) > 10)
+        self.is_continuous = X_train.apply(lambda col: is_continuous(col))
 
         X_cont = X_train.loc[:, self.is_continuous]
         X_cat = X_train.loc[:, ~self.is_continuous]
@@ -315,7 +316,7 @@ class TabDLM:
                 else []
             )
             else:
-                print([(column.long(), cardinality) for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)] if "x_cat" in batch else [])
+                #print([(column.long(), cardinality) for column, cardinality in zip(batch["x_cat"].T, self.cat_cardinalities)] if "x_cat" in batch else [])
                 x_cat_ohe = (
                     [
                         F.one_hot(column.long(), cardinality).double()

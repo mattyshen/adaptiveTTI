@@ -113,9 +113,9 @@ class FTDistill:
         #print(Chi.shape)
         
         Chi.drop(columns = [('1',)], inplace=True)
-        
+
         self.post_interaction_model.fit(Chi, y)
-            
+
         self.post_interaction_features = Chi.columns[self.post_interaction_model.coef_ != 0]
         
         if self.re_fit_alpha is None:

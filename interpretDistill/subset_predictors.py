@@ -58,9 +58,8 @@ class L0L2RegressorCV(BaseEstimator, RegressorMixin):
 #         self.best_alpha = self.estimator.gamma[optimal_gamma_index]
 #         self.intercept_, self.coef_ = (lambda arr: (arr[0], arr[1:]))(self.estimator.coeff(lambda_0=self.best_lambda,gamma=self.best_alpha).toarray().reshape(-1, ))
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.8, random_state=self.seed)
-        
+
         self.estimator = l0learn.fit(X_train.copy().values.astype(np.float64), y_train.copy().to_numpy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
-    
         df = self.estimator.characteristics()
         stats = df[df['support_size'] <= self.max_support_size].sort_values('support_size', ascending = False)
     

@@ -4,53 +4,36 @@ from imodels import FIGSRegressor, FIGSClassifier
 from imodels.importance import RandomForestPlusRegressor, RandomForestPlusClassifier
 
 from interpretDistill.fourierDistill import FTDistillRegressorCV, FTDistillClassifierCV
-from interpretDistill.binary_mapper import DTRegBinaryMapper, DTClassBinaryMapper, GMMBinaryMapper
+from interpretDistill.featurizer import RegFeaturizer, ClassFeaturizer, GMMBinaryMapper
 from interpretDistill.tabdl import TabDLM
 
-def get_model(task_type, model_name, args):
+def get_params(task_type, model_name, args):
     if task_type == 'regression':
-        if model_name == 'dt_binary_mapper':
-            model = DTRegBinaryMapper(depth=args.binary_mapper_depth, bit=args.binary_mapper_bit)
+        if model_name == 'featurizer':
             params = ['bit', 'depth']
-        elif model_name == 'gmm_binary_mapper':
-            model = GMMBinaryMapper()
+        if model_name == 'gmm_binary_mapper':
             params = []
         elif model_name == 'random_forest':
-            model = RandomForestRegressor(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
             params = ['max_depth', 'max_features']
         elif model_name == 'rf_plus':
-            rf_model = RandomForestRegressor(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
             model = RandomForestPlusRegressor(rf_model=rf_model)
             params = ['max_depth', 'max_features']
         elif model_name == 'figs':
-            model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_features=args.max_features)
             params = ['max_rules', 'max_trees','max_features']
         elif model_name == 'xgboost':
-            model = xgb.XGBRegressor(max_depth=args.max_depth)
             params = ['max_depth']
         elif model_name == 'resnet':
-            model = TabDLM(model_type='ResNet', 
-                 task_type=task_type,
-                 gpu=args.gpu,
-                 n_epochs=args.n_epochs)
+            params = []
         elif model_name == 'ft_transformer':
-            model = TabDLM(model_type='FTTransformer', 
-                 task_type=task_type,
-                 gpu=args.gpu,
-                 n_epochs=args.n_epochs)
+            params = []
         elif model_name == 'ft_distill': 
-            model = FTDistillRegressorCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
-                 post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.size_interactions)
             params = ['pre_interaction', 'pre_max_features', 'post_interaction', 'post_max_features']
         else:
-            model = None
-        return model
-    elif task_type in ['binary', 'multiclass', 'classification']:
-        if model_name == 'dt_binary_mapper':
-            model = DTClassBinaryMapper(depth=args.binary_mapper_depth, bit=args.binary_mapper_bit)
-        elif model_name == 'gmm_binary_mapper':
-            model = GMMBinaryMapper()
             params = []
+        return  params
+    elif task_type in ['binary', 'multiclass', 'classification']:
+        if model_name == 'featurizer':
+            model = ClassFeaturizer(depth=args.depth, bit=args.bit)
         elif model_name == 'random_forest':
             model = RandomForestClassifier(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
         elif model_name == 'rf_plus':
