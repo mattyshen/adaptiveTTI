@@ -18,7 +18,6 @@ params_shared_dict = {
 
 #datasets not completed = ["insurance", "qsar", "allstate", "mercedes", "transaction"]
 
-#TODO: python /home/mattyshen/interpretableDistillation/experiments/06_cv_bm_train_distill_model.py --dataset_name concrete --model_name rf_plus --max_depth 5 --max_features 1 --distiller_name ft_distill --seed 0 --save_dir /home/mattyshen/interpretableDistillation/results/06_cv_bm_train_distill_model --use_cache 1 
 params_coupled_dict = {}
 #RF, RF+ params
 # params_coupled_dict.update({('dataset_name', 
@@ -70,18 +69,43 @@ params_coupled_dict = {}
 #                             ]})
         
 # #FIGS params
+# params_coupled_dict.update({('dataset_name', 
+#                              'model_name', 
+#                              'max_rules', 
+#                              'max_trees',
+#                              'distiller_name'):
+#                             [(dn, mn, mr, mt, distn) 
+#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
+#                              for mn in ['figs']
+#                              for mr in [50, 60]
+#                              for mt in [20, 30]
+#                              for distn in ['ft_distill', 'figs']
+#                             ]})
+# params_coupled_dict.update({('dataset_name', 
+#                              'model_name', 
+#                              'max_rules', 
+#                              'max_trees',
+#                              'distiller_name',
+#                              'binary_mapper_name',
+#                              'binary_mapper_depth',
+#                              'binary_mapper_bit'):
+#                             [(dn, mn, mr, mt, distn, bm, bmd, bmb) 
+#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
+#                              for mn in ['figs']
+#                              for mr in [50, 60]
+#                              for mt in [20, 30]
+#                              for distn in ['ft_distill', 'figs']
+#                              for bm in ['dt_binary_mapper']
+#                              for bmd in [2, 3]
+#                              for bmb in [0]
+#                             ]})
+#FIGS TODO: 3 runs
 params_coupled_dict.update({('dataset_name', 
                              'model_name', 
                              'max_rules', 
                              'max_trees',
                              'distiller_name'):
-                            [(dn, mn, mr, mt, distn) 
-                             for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-                             for mn in ['figs']
-                             for mr in [50, 60]
-                             for mt in [20, 30]
-                             for distn in ['ft_distill', 'figs']
-                            ]})
+                            [('concrete', 'figs', mr, mt, 'ft_distill') for mr in [50] for mt in [30]]})
 params_coupled_dict.update({('dataset_name', 
                              'model_name', 
                              'max_rules', 
@@ -90,16 +114,7 @@ params_coupled_dict.update({('dataset_name',
                              'binary_mapper_name',
                              'binary_mapper_depth',
                              'binary_mapper_bit'):
-                            [(dn, mn, mr, mt, distn, bm, bmd, bmb) 
-                             for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-                             for mn in ['figs']
-                             for mr in [50, 60]
-                             for mt in [20, 30]
-                             for distn in ['ft_distill', 'figs']
-                             for bm in ['dt_binary_mapper']
-                             for bmd in [2, 3]
-                             for bmb in [0]
-                            ]})
+                            [('airfoil', 'figs', 50, 30, 'ft_distill', 'dt_binary_mapper', 3, 0), ('airfoil', 'figs', 60, 20, 'ft_distill', 'dt_binary_mapper', 3, 0)]})
 # #XGB params
 # params_coupled_dict.update({('dataset_name', 
 #                              'model_name', 

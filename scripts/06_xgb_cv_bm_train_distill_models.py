@@ -100,33 +100,43 @@ params_coupled_dict = {}
 #                              for bmd in [2, 3]
 #                              for bmb in [0]
 #                             ]})
-# #XGB params
+# #XGB TODO: 1 run
 params_coupled_dict.update({('dataset_name', 
                              'model_name', 
                              'max_depth',
                              'distiller_name'):
                             [(dn, mn, md, distn) 
-                             for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
+                             for dn in ["cpu_act"]
                              for mn in ['xgboost']
-                             for md in [4, 5]
-                             for distn in ['ft_distill', 'figs']
+                             for md in [5]
+                             for distn in ['ft_distill']
                             ]})
-params_coupled_dict.update({('dataset_name', 
-                             'model_name', 
-                             'max_depth',
-                             'distiller_name',
-                             'binary_mapper_name',
-                             'binary_mapper_depth',
-                             'binary_mapper_bit'):
-                            [(dn, mn, md, distn, bm, bmd, bmb) 
-                             for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-                             for mn in ['xgboost']
-                             for md in [4, 5]
-                             for distn in ['ft_distill', 'figs']
-                             for bm in ['dt_binary_mapper']
-                             for bmd in [2, 3]
-                             for bmb in [0]
-                            ]})
+# params_coupled_dict.update({('dataset_name', 
+#                              'model_name', 
+#                              'max_depth',
+#                              'distiller_name'):
+#                             [(dn, mn, md, distn) 
+#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
+#                              for mn in ['xgboost']
+#                              for md in [4, 5]
+#                              for distn in ['ft_distill', 'figs']
+#                             ]})
+# params_coupled_dict.update({('dataset_name', 
+#                              'model_name', 
+#                              'max_depth',
+#                              'distiller_name',
+#                              'binary_mapper_name',
+#                              'binary_mapper_depth',
+#                              'binary_mapper_bit'):
+#                             [(dn, mn, md, distn, bm, bmd, bmb) 
+#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
+#                              for mn in ['xgboost']
+#                              for md in [4, 5]
+#                              for distn in ['ft_distill', 'figs']
+#                              for bm in ['dt_binary_mapper']
+#                              for bmd in [2, 3]
+#                              for bmb in [0]
+#                             ]})
 # #FT, ResNet params
 # params_coupled_dict.update({('dataset_name', 
 #                              'model_name',

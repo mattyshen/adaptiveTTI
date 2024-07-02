@@ -231,21 +231,21 @@ if __name__ == "__main__":
         X_out, y_out = X_train.iloc[test_index, :], y_train.iloc[test_index]
         X_in, y_in = X_train.iloc[train_index, :], y_train.iloc[train_index]
         
-        binary_mapper = deepcopy(interpretDistill.model.get_model(args.task_type, args.binary_mapper_name, args))
+        binary_mapper_k = deepcopy(interpretDistill.model.get_model(args.task_type, args.binary_mapper_name, args))
         no_interaction = []
 
         X_in_bm, X_in_bmt, y_in_bm, y_in_bmt = train_test_split(X_in, y_in, test_size=args.binary_mapper_frac, random_state=args.seed)
         
-        _, binary_mapper = fit_binary_mapper(binary_mapper, X_in_bmt, y_in_bmt, 0)
+        _, binary_mapper_k = fit_binary_mapper(binary_mapper_k, X_in_bmt, y_in_bmt, 0)
             
-        X_in_bmt = binary_mapper.transform(X_in_bmt)
+        X_in_bmt = binary_mapper_k.transform(X_in_bmt)
 
-        X_in_bm = binary_mapper.transform(X_in_bm)
+        X_in_bm = binary_mapper_k.transform(X_in_bm)
 
         X_in = pd.concat([X_in_bmt, X_in_bm]).reset_index(drop=True)
         y_in = pd.concat([y_in_bmt, y_in_bm]).reset_index(drop=True)
 
-        no_interaction = binary_mapper.no_interaction
+        no_interaction = binary_mapper_k.no_interaction
     
         model_k = deepcopy(interpretDistill.model.get_model(args.task_type, args.model_name, args))
         distiller_k = deepcopy(interpretDistill.model.get_model(args.task_type, args.distiller_name, args))  
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         y_in_teacher = pd.Series(model_k.predict(X_in), name = y_in.name)
         _, distiller_k = fit_model(distiller_k, X_in, y_in_teacher, feature_names, no_interaction, 0)
         
-        X_out = binary_mapper.transform(X_out)
+        X_out = binary_mapper_k.transform(X_out)
 
         scores_[0].append(r2_score(y_out, model_k.predict(X_out)))
         scores_[1].append(r2_score(y_out, distiller_k.predict(X_out)))
