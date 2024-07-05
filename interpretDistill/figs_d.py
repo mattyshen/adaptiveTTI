@@ -33,6 +33,7 @@ class Node:
         tree_num: int = None,
         node_id: int = None,
         right=None,
+        feature_names=None,
     ):
         """Node class for splitting"""
 
@@ -55,6 +56,7 @@ class Node:
         self.right = right
         self.left_temp = None
         self.right_temp = None
+        self.feature_names = feature_names
 
     def setattrs(self, **kwargs):
         for k, v in kwargs.items():
@@ -62,10 +64,14 @@ class Node:
 
     def __str__(self):
         if self.is_root:
+            if self.feature_names is not None:
+                return f"{self.feature_names[self.feature]} <= {self.threshold:0.3f} (Tree #{self.tree_num} root)"
             return f"X_{self.feature} <= {self.threshold:0.3f} (Tree #{self.tree_num} root)"
         elif self.left is None and self.right is None:
             return f"Val: {self.value[0][0]:0.3f} (leaf)"
         else:
+            if self.feature_names is not None:
+                return f"{self.feature_names[self.feature]} <= {self.threshold:0.3f} (split)"
             return f"X_{self.feature} <= {self.threshold:0.3f} (split)"
 
     def print_root(self, y):
@@ -78,17 +84,21 @@ class Node:
         )
 
         if self.is_root:
+            if self.feature_names is not None:
+                return f"{self.feature_names[self.feature]} <= {self.threshold:0.3f}" + one_proportion
             return f"X_{self.feature} <= {self.threshold:0.3f}" + one_proportion
         elif self.left is None and self.right is None:
             return f"ΔRisk = {self.value[0][0]:0.2f}" + one_proportion
         else:
+            if self.feature_names is not None:
+                return f"{self.feature_names[self.feature]} <= {self.threshold:0.3f}" + one_proportion
             return f"X_{self.feature} <= {self.threshold:0.3f}" + one_proportion
 
     def __repr__(self):
         return self.__str__()
 
 
-class FIGSD(BaseEstimator):
+class FIGS(BaseEstimator):
     """FIGS (sum of trees) classifier.
     Fast Interpretable Greedy-Tree Sums (FIGS) is an algorithm for fitting concise rule-based models.
     Specifically, FIGS generalizes CART to simultaneously grow a flexible number of trees in a summation.
@@ -101,7 +111,6 @@ class FIGSD(BaseEstimator):
         self,
         max_rules: int = 12,
         max_trees: int = None,
-        max_depth: int = None,
         min_impurity_decrease: float = 0.0,
         random_state=None,
         max_features: str = None,
@@ -121,7 +130,6 @@ class FIGSD(BaseEstimator):
         super().__init__()
         self.max_rules = max_rules
         self.max_trees = max_trees
-        self.max_depth = depth
         self.min_impurity_decrease = min_impurity_decrease
         self.random_state = random_state
         self.max_features = max_features
@@ -147,6 +155,7 @@ class FIGSD(BaseEstimator):
         sample_weight=None,
         compare_nodes_with_sample_weight=True,
         max_features=None,
+        feature_names=None
     ):
         """
         Params
@@ -189,6 +198,7 @@ class FIGSD(BaseEstimator):
                 threshold=threshold[SPLIT],
                 impurity=impurity[SPLIT],
                 impurity_reduction=None,
+                feature_names=feature_names
             )
 
         # manage sample weights
@@ -218,6 +228,7 @@ class FIGSD(BaseEstimator):
             threshold=threshold[SPLIT],
             impurity=impurity[SPLIT],
             impurity_reduction=impurity_reduction,
+            feature_names=feature_names
         )
         # print('\t>>>', node_split, 'impurity', impurity, 'num_pts', idxs.sum(), 'imp_reduc', impurity_reduction)
 
@@ -227,12 +238,14 @@ class FIGSD(BaseEstimator):
             value=value[LEFT],
             impurity=impurity[LEFT],
             tree_num=tree_num,
+            feature_names=feature_names
         )
         node_right = Node(
             idxs=idxs_right,
             value=value[RIGHT],
             impurity=impurity[RIGHT],
             tree_num=tree_num,
+            feature_names=feature_names
         )
         node_split.setattrs(
             left_temp=node_left,
@@ -285,6 +298,7 @@ class FIGSD(BaseEstimator):
             tree_num=-1,
             sample_weight=sample_weight,
             max_features=self.max_features,
+            feature_names=feature_names
         )
         potential_splits = [node_init]
         for node in potential_splits:
@@ -329,7 +343,8 @@ class FIGSD(BaseEstimator):
 
                 # add new root potential node
                 node_new_root = Node(
-                    is_root=True, idxs=np.ones(X.shape[0], dtype=bool), tree_num=-1
+                    is_root=True, idxs=np.ones(X.shape[0], dtype=bool), tree_num=-1,
+                    feature_names=feature_names
                 )
                 potential_splits.append(node_new_root)
 
@@ -378,6 +393,7 @@ class FIGSD(BaseEstimator):
                     tree_num=potential_split.tree_num,
                     sample_weight=sample_weight,
                     max_features=self.max_features,
+                    feature_names=feature_names
                 )
 
                 # need to preserve certain attributes from before (value at this split + is_root)
@@ -661,11 +677,11 @@ class FIGSD(BaseEstimator):
         plt.show()
 
 
-class FIGSDRegressor(FIGSD, RegressorMixin):
+class FIGSRegressor(FIGS, RegressorMixin):
     ...
 
 
-class FIGSDClassifier(FIGSD, ClassifierMixin):
+class FIGSClassifier(FIGS, ClassifierMixin):
     ...
 
 
@@ -722,7 +738,7 @@ class FIGSCV:
         return self.figs.max_trees
 
 
-class FIGSDRegressorCV(FIGSDCV):
+class FIGSRegressorCV(FIGSCV):
     def __init__(
         self,
         n_rules_list: List[int] = [6, 12, 24, 30, 50],
@@ -743,7 +759,7 @@ class FIGSDRegressorCV(FIGSDCV):
         )
 
 
-class FIGSDClassifierCV(FIGSDCV):
+class FIGSClassifierCV(FIGSCV):
     def __init__(
         self,
         n_rules_list: List[int] = [6, 12, 24, 30, 50],

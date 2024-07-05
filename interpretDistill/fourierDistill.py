@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-import l0learn
-import l0bnb
 from sklearn.linear_model import Ridge, RidgeCV
 from celer import Lasso, ElasticNet, ElasticNetCV, LogisticRegression
 from sklearn.model_selection import GridSearchCV, KFold
@@ -16,7 +14,8 @@ import os
 import time
 
 #print(os.getcwd())
-from interpretDistill.subset_predictors import *
+#from interpretDistill.subset_predictors import *
+from subset_predictors import *
 
 class FTDistill:
     def __init__(self, 
@@ -174,14 +173,14 @@ class FTDistillRegressor(FTDistill):
 class FTDistillRegressorCV(FTDistillRegressor):
     #TODO: let users set alphas to search over for elasticnetCV models (currenly autoset, regardless of lam1/lam2 arguments)
     def __init__(self, 
-                 pre_interaction='l1', 
+                 pre_interaction='l0l2', 
                  pre_lam1=0.1, 
                  pre_lam2=0.1,
                  pre_max_features=0.1,
-                 post_interaction='l1', 
+                 post_interaction='l0l2', 
                  post_lam1=0.1, 
                  post_lam2=0.1,
-                 post_max_features=0.1,
+                 post_max_features=30,
                  size_interactions=3,  
                  re_fit_alpha=[0.1, 1.0, 10],
                  cv=3):
