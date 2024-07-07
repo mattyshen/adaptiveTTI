@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 
 import os
 
-from interpretDistill.binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
-from interpretDistill.continuous import is_continuous
-# from binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
-# from continuous import is_continuous
+# from interpretDistill.binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
+# from interpretDistill.continuous import is_continuous
+from binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
+from continuous import is_continuous
 
 class DTRegBinaryMapper:
     def __init__(self, depth=2, bit=1, empty_cat=1, seed=0):
@@ -148,6 +148,7 @@ class GMMBinaryMapper:
         plt.title(f'GMM for feature: {feature_name}')
         plt.xlabel(feature_name)
         plt.ylabel('Density')
+        plt.savefig(f'figs/{feature_name}.png')
         plt.show()
     
     def _fit_gmm_and_find_intersections(self, data, feature_name, plot):

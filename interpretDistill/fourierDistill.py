@@ -91,7 +91,6 @@ class FTDistill:
         self : object
             Returns the instance itself.
         """
-        
         self.no_interaction = no_interaction
         if self.pre_interaction_model is not None:
             self.pre_interaction_model.fit(X, y)
