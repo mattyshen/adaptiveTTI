@@ -329,7 +329,8 @@ class TabDLM:
             #print(f'cat cards: {self.cat_cardinalities}')
             #print([sum(t.isnan()) for t in [batch["x_cont"]] + x_cat_ohe])
             #print(batch["x_cont"].dtype, x_cat_ohe[0].dtype)
-            return self.model(torch.column_stack([batch["x_cont"]] + x_cat_ohe)).squeeze(-1)
+            #print(torch.column_stack([batch["x_cont"]] + x_cat_ohe).dtype)
+            return self.model(torch.column_stack([batch["x_cont"]] + x_cat_ohe).to(torch.float32)).squeeze(-1)
 
         elif isinstance(self.model, FTTransformer):
             if self.n_cont_features != 0:

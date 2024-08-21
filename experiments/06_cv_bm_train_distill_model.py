@@ -104,7 +104,7 @@ def add_main_args(parser):
     parser.add_argument(
         "--model_name",
         type=str,
-        choices=["random_forest", "rf_plus", "figs", "xgboost", "resnet", "ft_transformer", "ft_distill"],
+        choices=["random_forest", "rf_plus", "figs", "xgboost", "resnet", "ft_transformer", "ft_distill", "xgboost30"],
         default="ft_transformer",
         help="name of (teacher, if distillation) model",
     )
@@ -126,7 +126,7 @@ def add_main_args(parser):
         "--binary_mapper_bit", type=int, default=0, help="binary_mapper model to use bit representation"
     )
     parser.add_argument(
-        "--binary_mapper_depth", type=int, default=2, help="depth of decision tree for binary_mapper model"
+        "--binary_mapper_depth", type=int, default=2, help="depth of decision tree for binary_mapper model/2**bmd number of gaussian components in GMM"
     )
     parser.add_argument(
         "--binary_mapper_frac", type=float, default=0.5, help="fraction of train samples to fit binary_mapper"

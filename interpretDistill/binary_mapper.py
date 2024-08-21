@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from collections import defaultdict
+import copy
 
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
@@ -12,10 +13,11 @@ import matplotlib.pyplot as plt
 
 import os
 
-# from interpretDistill.binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
-# from interpretDistill.continuous import is_continuous
-from binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
-from continuous import is_continuous
+from interpretDistill.binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
+from interpretDistill.continuous import is_continuous
+# from binary_mapper_utils import binary_map, bit_repr, get_leaf_node_indices
+# from continuous import is_continuous
+import time
 
 class DTRegBinaryMapper:
     def __init__(self, depth=2, bit=1, empty_cat=1, seed=0):
@@ -118,6 +120,129 @@ class DTClassBinaryMapper(DTRegBinaryMapper):
     def __init__(self, depth=2, bit=True, seed=0):
         super().__init__(depth, bit, seed)
         self.dt = DecisionTreeClassifier(max_depth=self.depth, random_state=seed)
+        
+class FIGSBinaryMapper():
+    def __init__(self, figs):
+        self.figs = figs
+        self.no_interaction = []
+        self.round_deg=self.figs.round_deg
+        
+    def _traverse_paths(self, node):
+        if node is None:
+            return []
+
+        paths = []
+        vals = []
+
+        def dfs(current, path):
+            if current.left is None and current.right is None:
+                paths.append(copy.deepcopy(path))
+                vals.append(current.value.item())
+                return 
+
+            if current.right:
+                path.append((current, 'flip'))
+                dfs(current.right, path)
+                path.pop()
+
+            if current.left:
+                path.append((current, 'original'))
+                dfs(current.left, path)
+                path.pop()
+
+        dfs(node, [])
+
+        return list(zip(paths, vals))
+
+        
+    def _traverse_and_collect(self, node, feature_threshold_pairs):
+        if node is None:
+            return
+
+        if (node.right is not None and node.left is not None) and node.threshold is not None:
+            feature_threshold_pairs.append((node.feature_names[node.feature], node.threshold))
+
+        self._traverse_and_collect(node.left, feature_threshold_pairs)
+        self._traverse_and_collect(node.right, feature_threshold_pairs)
+        
+    def _collect_interactions(self, figs_paths):
+        interactions = []
+        figs_weight_dict = {}
+        for i, tree in enumerate(figs_paths):
+                for interaction_weight in tree:
+                    interaction, weight = interaction_weight
+                    cur_interaction = []
+                    for rule, sign in interaction:
+                        if sign == 'flip':
+                            cur_interaction.append(f'{rule.feature_names[rule.feature]}_>_{str(round(rule.threshold, 3))}')
+                        elif sign == 'original':
+                            cur_interaction.append(f'{rule.feature_names[rule.feature]}_<=_{str(round(rule.threshold, 3))}')
+                        else:
+                            print('?')
+                    figs_weight_dict[tuple(cur_interaction)] = weight
+                    interactions.append([cur_interaction, weight])
+        self.interactions = interactions
+        self.interaction_weights = figs_weight_dict
+    
+    def fit(self, X=None, y=None, train=True):
+        if train:
+            assert X is not None and y is not None, "X, y must not be None"
+            #print('fitting figs model')
+            figs_start = time.time()
+            self.figs.fit(X, y)
+            self.figs_training_time = time.time() - figs_start
+        
+        feature_threshold_pairs = []
+        figs_rules = []
+        if hasattr(self.figs, 'trees_'):
+            trees = self.figs.trees_
+        else:
+            trees = self.figs.figs.trees_
+            
+        for tree in trees:
+            self._traverse_and_collect(tree, feature_threshold_pairs)
+            figs_rules.append(self._traverse_paths(tree))
+            
+        self.f_t_pairings = feature_threshold_pairs
+        
+        self.figs_rules = figs_rules
+        self._collect_interactions(self.figs_rules)
+        
+        self.num_interactions = len([path for tree in self.figs_rules for path in tree])
+        self.max_interaction_size = max([len(path) for path, weight in self.interactions])
+        
+    def transform(self, X):
+        idx = X.index
+        transformed_features = []
+        
+        for f, t in self.f_t_pairings:
+            transformed_features.append(pd.Series(X[f] <= round(t, self.round_deg), name = f'{f}_<=_{str(round(t, self.round_deg))}')) # .reset_index(drop=True))
+            transformed_features.append(pd.Series(X[f] > round(t, self.round_deg), name = f'{f}_>_{str(round(t, self.round_deg))}'))
+            self.no_interaction.append(set([f'{f}_<=_{str(round(t, self.round_deg))}', f'{f}_>_{str(round(t, self.round_deg))}']))
+        
+        df = pd.concat(transformed_features, axis=1).astype(int).replace({-1:0, 0:0, 1:1}).set_index([idx])
+        return df.loc[:,~df.columns.duplicated()].copy() #.astype(int).replace({-1:0, 0:0, 1:1})
+            
+        
+    def fit_transform(self, X, y=None, train=False):
+        self.fit(X, y, train)
+        return self.transform(X)
+    
+    def transform_figs_inter(self, X):
+        df = pd.DataFrame()
+        for interaction, weight in self.interactions:
+            cur_val = np.ones(X.shape[0])
+            for inter in interaction:
+                if len(X[inter].shape) > 1:
+                    print(' X access dim 1 shape > 1')
+                    print(inter)
+                    print(X.columns)
+                cur_val *= X[inter].values
+            df[tuple(interaction)] = cur_val
+        return df.set_index([X.index])
+    
+    def predict(self, X):
+        return self.figs.predict(X)
         
 class GMMBinaryMapper:
     def __init__(self, empty_cat=1, seed=0, max_gmm_components=4):

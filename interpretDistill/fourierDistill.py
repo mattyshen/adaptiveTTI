@@ -14,8 +14,8 @@ import os
 import time
 
 #print(os.getcwd())
-#from interpretDistill.subset_predictors import *
-from subset_predictors import *
+from interpretDistill.subset_predictors import *
+#from subset_predictors import *
 
 class FTDistill:
     def __init__(self, 
@@ -91,6 +91,8 @@ class FTDistill:
         self : object
             Returns the instance itself.
         """
+        X.columns = [s.replace(" ", "_") for s in X.columns]
+
         self.no_interaction = no_interaction
         if self.pre_interaction_model is not None:
             self.pre_interaction_model.fit(X, y)
@@ -106,22 +108,17 @@ class FTDistill:
         self.features = [all([len(pot_s.intersection(s)) < 2 for s in self.no_interaction]) for pot_s in poly_features]
         
         Chi = pd.DataFrame(self.poly.transform(X), columns=list(map(lambda f: tuple(f), poly_features))).loc[:, self.features]
-
-        #print('Post-interaction model fitting')
-        #print(Chi.shape)
         
         Chi.drop(columns = [('1',)], inplace=True)
 
         self.post_interaction_model.fit(Chi, y)
-
         self.post_interaction_features = Chi.columns[self.post_interaction_model.coef_ != 0]
         
         if self.re_fit_alpha is None:
             self.post_sparsity_model = self.post_interaction_model
         else:
-            #print('Re-fitting with Ridge regression')
             Chi[('1',)] = 1
-            Chi_post_sparsity = Chi[np.array([('1',)]+list(self.post_interaction_features), dtype=object)]
+            Chi_post_sparsity = Chi.loc[:, list(np.array([('1',)]+list(self.post_interaction_features), dtype=object))]
             self.post_sparsity_model.fit(Chi_post_sparsity, y)
         
         return self
@@ -272,12 +269,12 @@ class FTDistillClassifier(FTDistill):
 class FTDistillClassifierCV(FTDistillRegressorCV):
     def __init__(self, 
                  pre_interaction='l1', 
-                 pre_lam1=None, 
-                 pre_lam2=None,
+                 pre_lam1=0.1, 
+                 pre_lam2=0.1,
                  pre_max_features=0.1,
                  post_interaction='l1', 
-                 post_lam1=None, 
-                 post_lam2=None,
+                 post_lam1=0.1, 
+                 post_lam2=0.1,
                  post_max_features=0.1,
                  size_interactions=3,  
                  re_fit_alpha=[0.1, 1.0, 10],

@@ -22,11 +22,18 @@ params_coupled_dict = {}
 
 #FT, ResNet params
 params_coupled_dict.update({('dataset_name', 
-                             'model_name'):
-                            [(dn, mn) 
+                             'model_name',
+                             'n_epochs'):
+                            [(dn, mn, 200) 
                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
                              for mn in ['ft_transformer', 'resnet']
                             ]})
+# params_coupled_dict.update({('dataset_name', 
+#                              'model_name'):
+#                             [(dn, mn) 
+#                              for dn in ["abalone","airfoil", "miami_housing"]
+#                              for mn in ['resnet']
+#                             ]})
 
 # Args list is a list of dictionaries
 # If you want to do something special to remove some of these runs, can remove them before calling run_args_list

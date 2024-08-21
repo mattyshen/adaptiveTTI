@@ -114,6 +114,7 @@ class FIGS(BaseEstimator):
         min_impurity_decrease: float = 0.0,
         random_state=None,
         max_features: str = None,
+        round_deg: int = 3
     ):
         """
         Params
@@ -134,6 +135,7 @@ class FIGS(BaseEstimator):
         self.random_state = random_state
         self.max_features = max_features
         self._init_decision_function()
+        self.round_deg = round_deg
 
     def _init_decision_function(self):
         """Sets decision function based on _estimator_type"""
@@ -592,7 +594,7 @@ class FIGS(BaseEstimator):
         def _predict_tree_single_point(root: Node, x):
             if root.left is None and root.right is None:
                 return root.value[0, 0]
-            left = x[root.feature] <= root.threshold
+            left = x[root.feature] <= round(root.threshold, self.round_deg)
             if left:
                 if root.left is None:  # we don't actually have to worry about this case
                     return root.value

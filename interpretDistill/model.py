@@ -1,10 +1,11 @@
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 import xgboost as xgb
-from imodels import FIGSRegressor, FIGSClassifier
+#from imodels import FIGSRegressor, FIGSClassifier
 from imodels.importance import RandomForestPlusRegressor, RandomForestPlusClassifier
 
+from interpretDistill.figs_d import FIGSRegressor
 from interpretDistill.fourierDistill import FTDistillRegressorCV, FTDistillClassifierCV
-from interpretDistill.binary_mapper import DTRegBinaryMapper, DTClassBinaryMapper, GMMBinaryMapper
+from interpretDistill.binary_mapper import DTRegBinaryMapper, DTClassBinaryMapper, GMMBinaryMapper, FIGSBinaryMapper
 from interpretDistill.tabdl import TabDLM
 
 def get_model(task_type, model_name, args):
@@ -13,7 +14,10 @@ def get_model(task_type, model_name, args):
             model = DTRegBinaryMapper(depth=args.binary_mapper_depth, bit=args.binary_mapper_bit)
             params = ['bit', 'depth']
         elif model_name == 'gmm_binary_mapper':
-            model = GMMBinaryMapper()
+            model = GMMBinaryMapper(max_gmm_components=2**args.binary_mapper_depth)
+            params = []
+        elif model_name == 'figs_binary_mapper':
+            model = FIGSBinaryMapper(figs=FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_features=args.max_features))
             params = []
         elif model_name == 'random_forest':
             model = RandomForestRegressor(max_depth=args.max_depth, min_samples_leaf=5, max_features=args.max_features)
@@ -26,7 +30,10 @@ def get_model(task_type, model_name, args):
             model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_features=args.max_features)
             params = ['max_rules', 'max_trees','max_features']
         elif model_name == 'xgboost':
-            model = xgb.XGBRegressor(max_depth=args.max_depth)
+            model = xgb.XGBRegressor(n_estimators=args.n_estimators, max_depth=args.max_depth)
+            params = ['max_depth']
+        elif model_name == 'xgboost30':
+            model = xgb.XGBRegressor(n_estimators=30, max_depth=args.max_depth)
             params = ['max_depth']
         elif model_name == 'resnet':
             model = TabDLM(model_type='ResNet', 

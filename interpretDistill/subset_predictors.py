@@ -16,7 +16,7 @@ class L0L2Regressor(BaseEstimator, RegressorMixin):
         self.gamma_max = gamma_max
 
     def fit(self, X, y):
-        if self.max_support_size < 1:
+        if self.max_support_size <= 1:
             self.max_support_size = min(int(self.max_support_size*min(X.shape[0],X.shape[1])),X.shape[1])
         else:
             self.max_support_size = int(self.max_support_size)
@@ -28,7 +28,7 @@ class L0L2Regressor(BaseEstimator, RegressorMixin):
         
         self.best_lambda = stats['l0']
         self.best_alpha = stats['l2']
-        self.intercept_, self.coef_ = (lambda arr: (arr[0], arr[1:]))(self.estimator.coeff(lambda_0=self.best_lambda,gamma=self.best_alpha).toarray().reshape(-1, ))
+        self.intercept_, self.coef_ = (lambda arr: (arr[0], arr[1:]))(self.estimator.coeff(lambda_0=self.best_lambda,gamma=self.best_alpha, include_intercept=True).toarray().reshape(-1, ))
 
     def predict(self, X):
         return self.estimator.predict(x = X, lambda_0=self.best_lambda, gamma=self.best_alpha).reshape(-1,)
@@ -44,7 +44,7 @@ class L0L2RegressorCV(BaseEstimator, RegressorMixin):
         self.seed = seed
 
     def fit(self, X, y):
-        if self.max_support_size < 1:
+        if self.max_support_size <= 1:
             self.max_support_size = min(int(self.max_support_size*min(X.shape[0],X.shape[1])),X.shape[1])
         else:
             self.max_support_size = int(self.max_support_size)
@@ -59,7 +59,6 @@ class L0L2RegressorCV(BaseEstimator, RegressorMixin):
 #         self.best_alpha = self.estimator.gamma[optimal_gamma_index]
 #         self.intercept_, self.coef_ = (lambda arr: (arr[0], arr[1:]))(self.estimator.coeff(lambda_0=self.best_lambda,gamma=self.best_alpha).toarray().reshape(-1, ))
         X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.8, random_state=self.seed)
-
         self.estimator = l0learn.fit(X_train.copy().values.astype(np.float64), y_train.copy().to_numpy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
         df = self.estimator.characteristics()
         stats = df[df['support_size'] <= self.max_support_size].sort_values('support_size', ascending = False)
@@ -89,7 +88,7 @@ class L0Regressor(BaseEstimator, RegressorMixin):
         self.max_support_size = max_support_size
 
     def fit(self, X, y):
-        if self.max_support_size < 1:
+        if self.max_support_size <= 1:
             self.max_support_size = min(int(self.max_support_size*min(X.shape[0],X.shape[1])),X.shape[1])
         else:
             self.max_support_size = int(self.max_support_size)

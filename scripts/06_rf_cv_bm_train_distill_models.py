@@ -22,19 +22,19 @@ params_shared_dict = {
 params_coupled_dict = {}
 #RF, RF+ params
 
-# params_coupled_dict.update({('dataset_name', 
-#                              'model_name', 
-#                              'max_depth', 
-#                              'max_features',
-#                              'distiller_name',
-#                             ):
-#                             [(dn, mn, md, mf, distn) 
-#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-#                              for mn in ['random_forest', 'rf_plus']
-#                              for md in [4, 5]
-#                              for mf in [0.75, 1]
-#                              for distn in ['ft_distill', 'figs']
-#                             ]})
+params_coupled_dict.update({('dataset_name', 
+                             'model_name', 
+                             'max_depth', 
+                             'max_features',
+                             'distiller_name',
+                            'binary_mapper_depth'):
+                            [(dn, mn, md, mf, distn, 3) 
+                             for dn in ["concrete"]
+                             for mn in ['random_forest', 'rf_plus']
+                             for md in [4, 5]
+                             for mf in [0.75, 1]
+                             for distn in ['ft_distill']
+                            ]})
 
 # params_coupled_dict.update({('dataset_name', 
 #                              'model_name', 
@@ -56,99 +56,17 @@ params_coupled_dict = {}
 #                              for bmb in [0]
 #                             ]})
 #RF+ TODO: 1 run
-params_coupled_dict.update({('dataset_name', 
-                             'model_name', 
-                             'max_depth', 
-                             'max_features',
-                             'distiller_name',
-                             'binary_mapper_name',
-                             'binary_mapper_depth',
-                             'binary_mapper_bit'
-                            ):
-                           [("concrete", "rf_plus", 5, 0.75, "ft_distill", "dt_binary_mapper", 2, 0)]})
+# params_coupled_dict.update({('dataset_name', 
+#                              'model_name', 
+#                              'max_depth', 
+#                              'max_features',
+#                              'distiller_name',
+#                              'binary_mapper_name',
+#                              'binary_mapper_depth',
+#                              'binary_mapper_bit'
+#                             ):
+#                            [("concrete", "rf_plus", 5, 0.75, "ft_distill", "dt_binary_mapper", 2, 0)]})
         
-# #FIGS params
-# params_coupled_dict.update({('dataset_name', 
-#                              'model_name', 
-#                              'max_rules', 
-#                              'max_trees',
-#                              'distiller_name'):
-#                             [(dn, mn, mr, mt, distn) 
-#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-#                              for mn in ['figs']
-#                              for mr in [50, 60]
-#                              for mt in [20, 30]
-#                              for distn in ['ft_distill', 'figs']
-#                             ]})
-# params_coupled_dict.update({('dataset_name', 
-#                              'model_name', 
-#                              'max_rules', 
-#                              'max_trees',
-#                              'distiller_name',
-#                              'binary_mapper_name',
-#                              'binary_mapper_depth',
-#                              'binary_mapper_bit'):
-#                             [(dn, mn, mr, mt, distn, bm, bmd, bmb) 
-#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-#                              for mn in ['figs']
-#                              for mr in [50, 60]
-#                              for mt in [20, 30]
-#                              for distn in ['ft_distill', 'figs']
-#                              for bm in ['dt_binary_mapper']
-#                              for bmd in [2, 3]
-#                              for bmb in [0]
-#                             ]})
-# #XGB params
-# params_coupled_dict.update({('dataset_name', 
-#                              'model_name', 
-#                              'max_depth',
-#                              'distiller_name'):
-#                             [(dn, mn, md, distn) 
-#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-#                              for mn in ['xgboost']
-#                              for md in [4, 5]
-#                              for distn in ['ft_distill', 'figs']
-#                             ]})
-# params_coupled_dict.update({('dataset_name', 
-#                              'model_name', 
-#                              'max_depth',
-#                              'distiller_name',
-#                              'binary_mapper_name',
-#                              'binary_mapper_depth',
-#                              'binary_mapper_bit'):
-#                             [(dn, mn, md, distn, bm, bmd, bmb) 
-#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-#                              for mn in ['xgboost']
-#                              for md in [4, 5]
-#                              for distn in ['ft_distill', 'figs']
-#                              for bm in ['dt_binary_mapper']
-#                              for bmd in [2, 3]
-#                              for bmb in [0]
-#                             ]})
-# #FT, ResNet params
-# params_coupled_dict.update({('dataset_name', 
-#                              'model_name',
-#                              'distiller_name'):
-#                             [(dn, mn, distn) 
-#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-#                              for mn in ['ft_transformer', 'resnet']
-#                              for distn in ['ft_distill', 'figs']
-#                             ]})
-# params_coupled_dict.update({('dataset_name', 
-#                              'model_name',
-#                              'distiller_name',
-#                              'binary_mapper_name',
-#                              'binary_mapper_depth',
-#                              'binary_mapper_bit'):
-#                             [(dn, mn, distn, bm, bmd, bmb) 
-#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-#                              for mn in ['ft_transformer', 'resnet']
-#                              for distn in ['ft_distill', 'figs']
-#                              for bm in ['dt_binary_mapper']
-#                              for bmd in [2, 3]
-#                              for bmb in [0]
-#                             ]})
-
 
 # Args list is a list of dictionaries
 # If you want to do something special to remove some of these runs, can remove them before calling run_args_list

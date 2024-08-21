@@ -9,7 +9,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
     'seed': [0],
-    'save_dir': [join(repo_dir, 'results/07_cv_train_model/xgb')],
+    'save_dir': [join(repo_dir, 'results/07_cv_train_model/xgb30')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
 }
 
@@ -26,7 +26,7 @@ params_coupled_dict.update({('dataset_name',
                              'max_depth'):
                             [(dn, mn, md) 
                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-                             for mn in ['xgboost']
+                             for mn in ['xgboost30']
                              for md in [4, 5]
                             ]})
 

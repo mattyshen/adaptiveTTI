@@ -24,20 +24,21 @@ params_coupled_dict = {}
 params_coupled_dict.update({('dataset_name',
                              'binary_mapper_name',
                              'model_name', 
+                             'binary_mapper_depth'
                             ):
-                            [(dn, 'gmm_binary_mapper', 'ft_distill') 
+                            [(dn, 'gmm_binary_mapper', 'ft_distill', 3) 
                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
                             ]})
-params_coupled_dict.update({('dataset_name',
-                             'binary_mapper_name',
-                             'binary_mapper_depth',
-                             'binary_mapper_bit',
-                             'model_name', 
-                            ):
-                            [(dn, 'dt_binary_mapper', bmd, 0, 'ft_distill') 
-                             for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
-                             for bmd in [2, 3]
-                            ]})
+# params_coupled_dict.update({('dataset_name',
+#                              'binary_mapper_name',
+#                              'binary_mapper_depth',
+#                              'binary_mapper_bit',
+#                              'model_name', 
+#                             ):
+#                             [(dn, 'dt_binary_mapper', bmd, 0, 'ft_distill') 
+#                              for dn in ["ca_housing", "abalone", "parkinsons", "airfoil", "cpu_act", "concrete", "powerplant", "miami_housing"]
+#                              for bmd in [2, 3]
+#                             ]})
     
 # Args list is a list of dictionaries
 # If you want to do something special to remove some of these runs, can remove them before calling run_args_list
