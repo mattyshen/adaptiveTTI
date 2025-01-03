@@ -21,8 +21,11 @@ import sys
 import psutil
 import imodelsx.cache_save_utils
 import time
+import torch
 
-# sys.path.append('/home/mattyshen/iCBM')
+sys.path.append('/home/mattyshen/iCBM')
+
+from CUB.template_model import End2EndModel, Inception3, MLP
 
 # from CUB.dataset import load_data
 # from CUB.config import BASE_DIR, N_CLASSES, N_ATTRIBUTES, DEVICE, get_device, set_device
@@ -189,13 +192,6 @@ def add_main_args(parser):
     parser.add_argument(
         "--mo", type=bool, default=False, help="multi-output parameter for FTDRegressorCV"
     )
-    
-    parser.add_argument(
-        "--data_dir", 
-        type=str,
-        default="directory of train (and val) data", 
-        help="directory of data"
-    )
     parser.add_argument(
         "--device", 
         type=str,
@@ -203,10 +199,10 @@ def add_main_args(parser):
         help="GPU device"
     )
     parser.add_argument(
-        "--concepts_to_update", 
-        type=list,
-        default=[], 
-        help="list of concepts to update"
+        "--concepts_to_edit", 
+        type=str,
+        default='', 
+        help="string of concepts to update of format 'X,Y,Z' for integers X, Y, Z"
     )
     return parser
 
@@ -286,17 +282,27 @@ if __name__ == "__main__":
         
         #EDITED
         
+        concepts_to_edit = list(map(int, args.concepts_to_edit.split(',')))
+        
         #load model_seed in
-        sec_model = torch.load(f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed1/outputs/best_model_{seed}.pth').sec_model
-        sec_model = sec_model.to(args.device)
+        sys.path.append('/home/mattyshen/iCBM')
+        sec_model = torch.load(f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{seed}/outputs/best_model_{seed}.pth').sec_model
+        sec_model.to(args.device)
+        #sec_model = model.sec_model
+        #model.eval()
         sec_model.eval()
+        sys.path.append(path_to_repo)
+
+        # sec_model = torch.load(f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{seed}/outputs/best_model_{seed}.pth').sec_model
+        # sec_model = sec_model.to(args.device)
+        # sec_model.eval()
         
         #editing concept predictions for second half model of CBM
-        X_train_hat.iloc[:, args.concepts_to_edit] = X_train.iloc[:, args.concepts_to_edit]
-        X_test_hat.iloc[:, args.concepts_to_edit] = X_test.iloc[:, args.concepts_to_edit]
+        X_train_hat.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit]
+        X_test_hat.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit]
         #editing concept predictions for distiller model
-        X_train_model.iloc[:, args.concepts_to_edit] = X_train.iloc[:, args.concepts_to_edit].astype(X_train_model.iloc[:, 0].dtype)
-        X_test_model.iloc[:, args.concepts_to_edit] = X_test.iloc[:, args.concepts_to_edit].astype(X_test_model.iloc[:, 0].dtype)
+        X_train_model.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit].astype(X_train_model.iloc[:, 0].dtype)
+        X_test_model.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit].astype(X_test_model.iloc[:, 0].dtype)
         
         y_train_edited_cbm = sec_model(torch.tensor(X_train_hat.values, dtype=torch.float32).to(args.device))
         y_test_edited_cbm = sec_model(torch.tensor(X_test_hat.values, dtype=torch.float32).to(args.device))

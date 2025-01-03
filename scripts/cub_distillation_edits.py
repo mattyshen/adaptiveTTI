@@ -24,13 +24,8 @@ params_coupled_dict.update({('model_name',
                              'X_type',
                              'Y_type',
                              'thresh',
-                             'max_depth',
-                             'task_type'):
-                           [('xgboost', xt, yt, 0, md, tt)
-                            for xt in ['probs']
-                            for yt in ['probs', 'logits']
-                            for md in [3, 8]
-                            for tt in ['regression']]})
+                             'concepts_to_edit'):
+                           [('FIGSRegressor', 'binary', 'logits', 0.25, '0,3,4')]})
 
 args_list = submit_utils.get_args_list(
     params_shared_dict=params_shared_dict,
