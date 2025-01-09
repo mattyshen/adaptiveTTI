@@ -12,6 +12,8 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.linear_model import RidgeCV
 import xgboost as xgb
 
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+
 from sklearn.preprocessing import StandardScaler
 import joblib
 import imodels
@@ -88,11 +90,53 @@ def find_optimal_threshold(y_true, y_probs):
     optimal_threshold = thresholds[optimal_idx]
     return optimal_threshold
 
-def process_X(X_train, X_train_hat, X_test, X_test_hat, prepro, thresh=0):
+def find_thresh(linkage_matrix, min_clusters=10, max_clusters=15, step=0.1, count = 0):
+    if count > 3:
+        return None, 0
+    threshold = 1.5
+    while threshold < 10:
+        clusters = fcluster(linkage_matrix, t=threshold, criterion='distance')
+        num_clusters = len(set(clusters))
+        if min_clusters <= num_clusters <= max_clusters:
+            return threshold, num_clusters
+        threshold += step
+    print('find_thresh recursive call beginning')
+    return find_thresh(linkage_matrix, min_clusters=min_clusters, max_clusters=max_clusters+5, step=0.1, count = count+1)
+    #return None, 0
+
+def cluster_concepts(X, num_clusters):
+    distance_matrix = 1 - X_train_hat.corr().abs()
+    linkage_matrix = linkage(distance_matrix, method='ward')
+    
+    threshold, _ = find_thresh(linkage_matrix, min_clusters=num_clusters-5, max_clusters=num_clusters, step=0.1)
+        
+    clusters = fcluster(linkage_matrix, t=threshold, criterion='distance')
+    
+    feature_groups = {}
+    for i, cluster_id in enumerate(clusters):
+        feature_groups.setdefault(cluster_id, []).append(distance_matrix.columns[i])
+    
+    return feature_groups
+
+def process_X(X_train, X_train_hat, X_test, X_test_hat, prepro, num_clusters, thresh=0):
     if prepro == "probs":
         return X_train_hat, X_test_hat
+    elif prepro == 'cluster':
+        f_gs = cluster_concepts(X_train_hat, num_clusters)
+        optimal_thresholds = np.zeros(X_train.shape[1])
+        
+        for k in f_gs.keys():
+            idxs = [int(s[1:]) - 1 for s in f_gs[k]]
+            optimal_thresholds[idxs] = find_optimal_threshold(X_train[f_gs[k]].values.reshape(-1, ), X_train_hat[f_gs[k]].values.reshape(-1, ))
+
+        return (X_train_hat > optimal_thresholds).astype(int), (X_test_hat > optimal_thresholds).astype(int)
+    elif prepro == 'global':
+        opt_thresh = find_optimal_threshold(X_train.values.reshape(-1, ), X_train_hat.values.reshape(-1, ))
+        
+        return (X_train_hat > opt_thresh).astype(int), (X_test_hat > opt_thresh).astype(int)
+        
     elif prepro == 'binary' and thresh > 0:
-        return (X_train_hat > thresh).astype(int), (X_test_hat > thresh).astype(int), 
+        return (X_train_hat > thresh).astype(int), (X_test_hat > thresh).astype(int),
     else:
         optimal_thresholds = []
         for class_idx in range(X_train_hat.shape[1]):
@@ -128,14 +172,14 @@ def add_main_args(parser):
     parser.add_argument(
         "--model_name", 
         type=str,
-        choices=["FIGSHydraRegressor", "FIGSRegressor", "XGBRegressor", "FTDHydraRegressor", "FTDRegressorCV", "FIGSClassifier", "XGBClassifier", "FTDClassifierCV"],
+        choices=["FIGSHydraRegressor", "FIGSRegressor", "XGBRegressor", "FTDHydraRegressor", "FTDHydraRegressorCV","FTDRegressorCV", "FIGSClassifier", "XGBClassifier", "FTDClassifierCV"],
         default="FIGSRegressor", 
         help="Model Name"
     )
     parser.add_argument(
         "--X_type", 
         type=str, 
-        choices=["probs", "binary"],
+        choices=["probs", "binary", "cluster", "global"],
         default="binary", 
         help="Type of X"
     )
@@ -199,6 +243,12 @@ def add_main_args(parser):
         help="GPU device"
     )
     parser.add_argument(
+        "--num_clusters", 
+        type=int,
+        default=15, 
+        help="max number of clusters of concepts"
+    )
+    parser.add_argument(
         "--concepts_to_edit", 
         type=str,
         default='', 
@@ -255,7 +305,7 @@ if __name__ == "__main__":
         
         #load in tabular frozen predictions for distillation and logging original cbm accuracies
         X_train, X_train_hat, X_test, X_test_hat, y_train, y_train_hat, y_test, y_test_hat = load_csvs(f'/home/mattyshen/DistillationEdit/data/cub_tabular/seed0_Joint0.01SigmoidModel__Seed{seed}')
-        X_train_model, X_test_model = process_X(X_train, X_train_hat, X_test, X_test_hat, args.X_type, args.thresh)
+        X_train_model, X_test_model = process_X(X_train, X_train_hat, X_test, X_test_hat, args.X_type, args.num_clusters, args.thresh)
         y_train_model, y_test_model = process_y(y_train, y_train_hat, y_test, y_test_hat, args.Y_type)
         
         #log cbm prediction accuracies for train+val and test (using tabular frozen predictions)
@@ -268,7 +318,9 @@ if __name__ == "__main__":
         r, model = fit_model(model, X_train_model, y_train_model, None, r)
         
         #log distiller prediction accuracies for train+val and test
+        print('distiller true')
         r = evaluate_model(model, X_train_model, X_test_model, y_train, y_test, "distiller_true", seed, r)
+        print('distiller cbm')
         r = evaluate_model(model, X_train_model, X_test_model, y_train_hat.idxmax(axis=1).astype(int), y_test_hat.idxmax(axis=1).astype(int), "distiller_cbm", seed, r)
         
         cbm_train_mask = y_train_hat.idxmax(axis = 1).astype(int).to_numpy().reshape(-1, ) == y_train.values.reshape(-1, )
@@ -314,7 +366,9 @@ if __name__ == "__main__":
         r[f"edited_cbm_true_seed{seed}_accuracy_test"] = accuracy_score(y_test_edited_cbm.idxmax(axis=1).astype(int), y_test)
         
         #log distiller prediction accuracies for train+val and test
+        print('distiller edited true')
         r = evaluate_model(model, X_train_model, X_test_model, y_train, y_test, "edited_distiller_true", seed, r)
+        print('distiller edited cbm')
         r = evaluate_model(model, X_train_model, X_test_model, y_train_edited_cbm.idxmax(axis=1).astype(int), y_test_edited_cbm.idxmax(axis=1).astype(int), "edited_distiller_cbm", seed, r)
         cbm_train_mask = y_train_edited_cbm.idxmax(axis = 1).astype(int).to_numpy().reshape(-1, ) == y_train.values.reshape(-1, )
         cbm_test_mask = y_test_edited_cbm.idxmax(axis = 1).astype(int).to_numpy().reshape(-1, ) == y_test.values.reshape(-1, )

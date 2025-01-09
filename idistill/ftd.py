@@ -101,7 +101,7 @@ class FTDistill:
         """
         X.columns = [s.replace(" ", "_") for s in X.columns]
         
-        print(f'original X shape: {X.shape, y.shape}')
+        #print(f'original X shape: {X.shape, y.shape}')
 
         self.no_interaction = no_interaction
         if self.pre_interaction_model is not None:
@@ -110,7 +110,7 @@ class FTDistill:
             X = X[self.pre_interaction_features]
             #print(f'Selected features: {self.pre_interaction_features}')
             
-            print(f'pre interaction X shape: {X.shape, y.shape}')
+            #print(f'pre interaction X shape: {X.shape, y.shape}')
 
         self.poly = PolynomialFeatures(degree=self.size_interactions, interaction_only=True)
         self.poly.fit(X)
@@ -121,10 +121,10 @@ class FTDistill:
         
         Chi = pd.DataFrame(self.poly.transform(X), columns=list(map(lambda f: tuple(f), poly_features))).loc[:, self.features]
         
-        print(f'Chi shape: {Chi.shape}')
+        #print(f'Chi shape: {Chi.shape}')
         
         Chi.drop(columns = [('1',)], inplace=True)
-        print(self.post_interaction_model)
+        #print(self.post_interaction_model)
         self.post_interaction_model.fit(Chi, y)
         
         if not self.mo:
@@ -165,6 +165,25 @@ class FTDistill:
             Chi = Chi[np.array([('1',)]+list(self.post_interaction_features), dtype=object)]
         
         return self.post_sparsity_model.predict(Chi)
+    
+    def get_params(self, deep=True):
+        return {'pre_interaction': self.pre_interaction, 
+                'pre_lam1': self.pre_lam1,
+                'pre_lam2': self.pre_lam2,
+                'pre_max_features': self.pre_max_features, 
+                'post_interaction': self.post_interaction, 
+                'post_lam1': self.post_lam1,
+                'post_lam2': self.post_lam2,
+                'post_max_features': self.post_max_features, 
+                'size_interactions': self.size_interactions,
+                're_fit_alpha': self.re_fit_alpha,
+                'mo': self.mo}
+    
+    def set_params(self, **params):
+        # Set the parameters of the regressor
+        for key, value in params.items():
+            setattr(self, key, value)
+        return self
 
 class FTDistillRegressor(FTDistill):
     def __init__(self, 

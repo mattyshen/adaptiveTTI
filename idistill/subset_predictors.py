@@ -17,12 +17,22 @@ class L0L2Regressor(BaseEstimator, RegressorMixin):
         self.gamma_max = gamma_max
 
     def fit(self, X, y):
+        if isinstance(y, pd.DataFrame):
+            assert y.shape[1] == 1, "Cannot Handle Multi-Output Task"
+            y = y.iloc[:, 0]
+        if isinstance(y, pd.Series):
+            y = y.to_numpy().reshape(-1, 1)
+        if len(y.shape) > 1:
+            self.need_to_reshape = True
+            y = y.reshape(-1,)
+            
         if self.max_support_size <= 1:
             self.max_support_size = min(int(self.max_support_size*min(X.shape[0],X.shape[1])),X.shape[1])
         else:
             self.max_support_size = int(self.max_support_size)
             
-        self.estimator = l0learn.fit(X.copy().values.astype(np.float64), y.copy().to_numpy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
+        #self.estimator = l0learn.fit(X.copy().values.astype(np.float64), y.copy().to_numpy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
+        self.estimator = l0learn.fit(X.copy().values.astype(np.float64), y.copy().astype(np.float64), penalty=self.penalty, max_support_size=self.max_support_size, num_gamma=self.n_alphas, gamma_min=self.gamma_min, gamma_max=self.gamma_max)
         
         df = self.estimator.characteristics()
         stats = df[df['support_size'] <= self.max_support_size].sort_values('support_size', ascending = False).iloc[0, :]
