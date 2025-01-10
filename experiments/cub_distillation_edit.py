@@ -93,7 +93,7 @@ def find_optimal_threshold(y_true, y_probs):
 def find_thresh(linkage_matrix, min_clusters=10, max_clusters=15, step=0.1, count = 0):
     if count > 3:
         return None, 0
-    threshold = 1.5
+    threshold = 5
     while threshold < 10:
         clusters = fcluster(linkage_matrix, t=threshold, criterion='distance')
         num_clusters = len(set(clusters))
@@ -120,7 +120,7 @@ def cluster_concepts(X, num_clusters):
 
 def process_X(X_train, X_train_hat, X_test, X_test_hat, prepro, num_clusters, thresh=0):
     if prepro == "probs":
-        return X_train_hat, X_test_hat
+        return X_train_hat, X_test_hat, None
     elif prepro == 'cluster':
         f_gs = cluster_concepts(X_train_hat, num_clusters)
         optimal_thresholds = np.zeros(X_train.shape[1])
@@ -129,15 +129,35 @@ def process_X(X_train, X_train_hat, X_test, X_test_hat, prepro, num_clusters, th
             idxs = [int(s[1:]) - 1 for s in f_gs[k]]
             optimal_thresholds[idxs] = find_optimal_threshold(X_train[f_gs[k]].values.reshape(-1, ), X_train_hat[f_gs[k]].values.reshape(-1, ))
 
-        return (X_train_hat > optimal_thresholds).astype(int), (X_test_hat > optimal_thresholds).astype(int)
+        return (X_train_hat > optimal_thresholds).astype(int), (X_test_hat > optimal_thresholds).astype(int), f_gs
     elif prepro == 'global':
+        f_gs = cluster_concepts(X_train_hat, num_clusters)
         opt_thresh = find_optimal_threshold(X_train.values.reshape(-1, ), X_train_hat.values.reshape(-1, ))
         
-        return (X_train_hat > opt_thresh).astype(int), (X_test_hat > opt_thresh).astype(int)
+        return (X_train_hat > opt_thresh).astype(int), (X_test_hat > opt_thresh).astype(int), f_gs
+    elif prepro == 'gpt':
+        f_gs = {1:['c7', 'c9', 'c28', 'c30', 'c93', 'c95', 'c73', 'c75', 'c47', 'c49', 'c85', 'c86', 'c87', 'c88', 'c89', 'c90'],
+                2:['c5', 'c8', 'c10', 'c104', 'c107', 'c109', 'c40', 'c43', 'c45', 'c17', 'c19', 'c20', 'c38', 'c39', 'c110', 'c111', 'c112'],
+                3:['c1', 'c2', 'c3', 'c4', 'c53', 'c54', 'c100', 'c101', 'c102', 'c103', 'c97', 'c98', 'c99'],
+                4:['c51', 'c52', 'c55', 'c56', 'c57', 'c58', 'c59', 'c65', 'c66', 'c67', 'c68', 'c69', 'c70', 'c32'],
+                5:['c78', 'c79', 'c80', 'c81', 'c82', 'c83', 'c84'],
+                6:['c24', 'c25', 'c88', 'c89', 'c90', 'c110', 'c111', 'c112'],
+                7:['c60', 'c61', 'c62', 'c63', 'c64', 'c33', 'c34', 'c35', 'c36', 'c37', 'c26', 'c27', 'c28', 'c29', 'c30', 'c31', 'c91', 'c92','c93', 'c94', 'c96', 'c95'],
+        }
+        
+        optimal_thresholds = np.zeros(X_train.shape[1])
+        
+        for k in f_gs.keys():
+            idxs = [int(s[1:]) - 1 for s in f_gs[k]]
+            optimal_thresholds[idxs] = find_optimal_threshold(X_train[f_gs[k]].values.reshape(-1, ), X_train_hat[f_gs[k]].values.reshape(-1, ))
+
+        return (X_train_hat > optimal_thresholds).astype(int), (X_test_hat > optimal_thresholds).astype(int), f_gs
         
     elif prepro == 'binary' and thresh > 0:
-        return (X_train_hat > thresh).astype(int), (X_test_hat > thresh).astype(int),
+        f_gs = cluster_concepts(X_train_hat, num_clusters)
+        return (X_train_hat > thresh).astype(int), (X_test_hat > thresh).astype(int), f_gs
     else:
+        f_gs = cluster_concepts(X_train_hat, num_clusters)
         optimal_thresholds = []
         for class_idx in range(X_train_hat.shape[1]):
             y_true_class = X_train.iloc[:, class_idx]
@@ -145,7 +165,7 @@ def process_X(X_train, X_train_hat, X_test, X_test_hat, prepro, num_clusters, th
             optimal_thresholds.append(find_optimal_threshold(y_true_class, y_probs_class))
         optimal_thresholds = np.array(optimal_thresholds)
         
-        return (X_train_hat > optimal_thresholds).astype(int), (X_test_hat > optimal_thresholds).astype(int), 
+        return (X_train_hat > optimal_thresholds).astype(int), (X_test_hat > optimal_thresholds).astype(int), f_gs
     
 def process_y(y_train, y_train_hat, y_test, y_test_hat, prepro):
     if prepro == "probs":
@@ -252,7 +272,7 @@ def add_main_args(parser):
         "--concepts_to_edit", 
         type=str,
         default='', 
-        help="string of concepts to update of format 'X,Y,Z' for integers X, Y, Z"
+        help="string of concepts to update of format 'X,Y,Z' for integers X, Y, Z OR set to the strinf random_clusters to randomly edit clusters of concepts"
     )
     return parser
 
@@ -305,7 +325,7 @@ if __name__ == "__main__":
         
         #load in tabular frozen predictions for distillation and logging original cbm accuracies
         X_train, X_train_hat, X_test, X_test_hat, y_train, y_train_hat, y_test, y_test_hat = load_csvs(f'/home/mattyshen/DistillationEdit/data/cub_tabular/seed0_Joint0.01SigmoidModel__Seed{seed}')
-        X_train_model, X_test_model = process_X(X_train, X_train_hat, X_test, X_test_hat, args.X_type, args.num_clusters, args.thresh)
+        X_train_model, X_test_model, clusters = process_X(X_train, X_train_hat, X_test, X_test_hat, args.X_type, args.num_clusters, args.thresh)
         y_train_model, y_test_model = process_y(y_train, y_train_hat, y_test, y_test_hat, args.Y_type)
         
         #log cbm prediction accuracies for train+val and test (using tabular frozen predictions)
@@ -334,8 +354,6 @@ if __name__ == "__main__":
         
         #EDITED
         
-        concepts_to_edit = list(map(int, args.concepts_to_edit.split(',')))
-        
         #load model_seed in
         sys.path.append('/home/mattyshen/iCBM')
         sec_model = torch.load(f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{seed}/outputs/best_model_{seed}.pth').sec_model
@@ -348,13 +366,28 @@ if __name__ == "__main__":
         # sec_model = torch.load(f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{seed}/outputs/best_model_{seed}.pth').sec_model
         # sec_model = sec_model.to(args.device)
         # sec_model.eval()
-        
-        #editing concept predictions for second half model of CBM
-        X_train_hat.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit]
-        X_test_hat.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit]
-        #editing concept predictions for distiller model
-        X_train_model.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit].astype(X_train_model.iloc[:, 0].dtype)
-        X_test_model.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit].astype(X_test_model.iloc[:, 0].dtype)
+        print(args.concepts_to_edit, clusters)
+        if args.concepts_to_edit == 'random_clusters':
+            num_sets = len(clusters.keys())
+            print(f'num sets: {num_sets}')
+            np.random.seed(0)
+            shuffled_indices = np.random.permutation(X_train_hat.index)
+            split_indices = np.array_split(shuffled_indices, num_sets)
+            for key, split in zip(clusters.keys(), split_indices):
+                curr_cte = clusters[key]
+                X_train_hat.iloc[split, curr_cte] = X_train.iloc[split, curr_cte]
+                X_test_hat.iloc[split, curr_cte] = X_test.iloc[split, curr_cte]
+                X_train_model.iloc[split, curr_cte] = X_train.iloc[split, curr_cte].astype(X_train_model.iloc[:, 0].dtype)
+                X_test_model.iloc[split, curr_cte] = X_test.iloc[split, curr_cte].astype(X_test_model.iloc[:, 0].dtype)
+                
+        else:
+            #editing concept predictions for second half model of CBM
+            concepts_to_edit = list(map(int, args.concepts_to_edit.split(',')))
+            X_train_hat.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit]
+            X_test_hat.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit]
+            #editing concept predictions for distiller model
+            X_train_model.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit].astype(X_train_model.iloc[:, 0].dtype)
+            X_test_model.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit].astype(X_test_model.iloc[:, 0].dtype)
         
         y_train_edited_cbm = sec_model(torch.tensor(X_train_hat.values, dtype=torch.float32).to(args.device))
         y_test_edited_cbm = sec_model(torch.tensor(X_test_hat.values, dtype=torch.float32).to(args.device))

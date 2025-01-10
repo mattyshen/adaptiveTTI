@@ -85,7 +85,7 @@ def check_fit_arguments(model, X, y, feature_names, multi_output=False):
         model.feature_names_ = feature_names
     if scipy.sparse.issparse(X):
         X = X.toarray()
-    X, y = check_X_y(X, y, multi_output=multi_output)
+    X, y = check_X_y(X, np.squeeze(y), multi_output=multi_output)
     _, model.n_features_in_ = X.shape
     assert len(model.feature_names_) == model.n_features_in_, 'feature_names should be same size as X.shape[1]'
     y = y.astype(float)
@@ -361,7 +361,6 @@ class FIGS(BaseEstimator):
             self.n_outputs = 1
             y = y.reshape(-1, 1)
             self.need_to_reshape = True
-
         X, y, feature_names = check_fit_arguments(self, X, y, feature_names, self.n_outputs > 1)
         self.n_features = X.shape[1]
         if sample_weight is not None:
@@ -914,11 +913,8 @@ class FIGSHydraRegressor():
             self.estimators.append(est)
     
     def predict(self, X):
-        prob_preds = self.predict_proba(X)
-        return np.argmax(prob_preds, axis = 1)
-    
-    def predict_proba(self, X):
-        return softmax(np.array([est.predict(X) for est in self.estimators]).T.squeeze(0), axis=1)
+        return np.array([est.predict(X) for est in self.estimators]).T.squeeze(0)
+
         
         
 
