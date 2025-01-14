@@ -9,7 +9,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
-    'save_dir': [join(repo_dir, 'results/prepro')],
+    'save_dir': [join(repo_dir, 'results/figs_stability')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
 }
 
@@ -40,33 +40,15 @@ params_coupled_dict.update({('model_name',
                              'X_type',
                              'Y_type',
                              'thresh',
-                             'concepts_to_edit',
-                            'pre_max_features',
-                            'post_max_features',
                             'max_depth',
                             'max_trees',
                             'max_rules',
-                            'num_clusters'):
-                            [('FIGSRegressor', xt, 'logits', t, 'random_independent', 25, 10, 3, 30, 90, 7)
-                           for xt in ['binary']
-                           for t in [0, 0.5]] +
-                           [('FIGSRegressor', xt, 'logits', 0, 'random_independent', 25, 10, 3, 30, 90, 7)
-                           for xt in ['global', 'cluster']] +
-                           [('FIGSRegressor', xt, 'logits', 0, 'random_independent', 25, 10, 3, 30, 90, 7)
-                           for xt in ['gpt1', 'gpt2', 'gpt3', 'gpt4']]})
+                            'num_clusters',
+                            'model_seed',
+                            'num_bootstraps'):
+                            [('FIGSRegressor', 'binary', 'logits', 0.5, 3, 30, 90, 5, s, 20)
+                            for s in [1, 2, 3]]})
 
-                           # [(m, xt, 'logits', 0, '50,89,22,52,78,82,83,100,86,20', 25, mr, 3, mt, mr, 10)
-                           # for xt in ['global', 'cluster']
-                           # for m in ['FIGSHydraRegressor', 'FTDHydraRegressor']
-                           # for mt in [3, 5, 7]
-                           # for mr in [5, 10, 15]]+
-                           # [(m, xt, 'logits', t, '50,89,22,52,78,82,83,100,86,20', 25, mr, 3, mt, mr, 10)
-                           # for xt in ['binary']
-                           # for t in [0, 0.25, 0.5]
-                           # for m in ['FIGSHydraRegressor', 'FTDHydraRegressor']
-                           # for mt in [3, 5, 7]
-                           # for mr in [5, 10, 15]]
-                           # })
 
 args_list = submit_utils.get_args_list(
     params_shared_dict=params_shared_dict,
@@ -74,7 +56,7 @@ args_list = submit_utils.get_args_list(
 )
 submit_utils.run_args_list(
     args_list,
-    script_name=join(repo_dir, 'experiments', 'cub_distillation_edit.py'),
+    script_name=join(repo_dir, 'experiments', 'figs_stability.py'),
     actually_run=True,
     n_cpus=len(os.sched_getaffinity(0)),
 )

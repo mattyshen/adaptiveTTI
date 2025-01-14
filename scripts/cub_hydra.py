@@ -29,11 +29,11 @@ params_coupled_dict.update({('model_name',
                             'max_trees',
                             'max_rules',
                             'num_clusters'):
-                            [(m, xt, 'logits', 0.5, 'random_clusters', 20, mt*2, 3, mt, mr, 10)
-                           for xt in ['binary', 'global']
+                            [(m, xt, 'logits', 0.5, 'random_clusters', 20, mt*2, 3, mt, mr, 7)
+                           for xt in ['binary', 'global', 'cluster', 'gpt1', 'gpt2', 'gpt3', 'gpt4']
                            for m in ['FIGSHydraRegressor', 'FTDHydraRegressor']
-                           for mt in [5, 7]
-                           for mr in [10, 15]]})
+                           for mt in [5, 7, 10]
+                           for mr in [10, 15, 20]]})
 
                            # [(m, xt, 'logits', 0, '50,89,22,52,78,82,83,100,86,20', 25, mr, 3, mt, mr, 10)
                            # for xt in ['global', 'cluster']

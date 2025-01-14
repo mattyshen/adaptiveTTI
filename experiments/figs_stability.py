@@ -95,7 +95,7 @@ def find_thresh(linkage_matrix, min_clusters=10, max_clusters=15, step=0.1, coun
     if count > 3:
         print(max_clusters)
         return find_thresh(linkage_matrix, min_clusters=min_clusters, max_clusters=(max_clusters-5*4)-1, step=step, count = 0)
-    threshold = 4.9
+    threshold = 4
     while threshold < 10:
         clusters = fcluster(linkage_matrix, t=threshold, criterion='distance')
         num_clusters = len(set(clusters))
@@ -227,6 +227,49 @@ def process_y(y_train, y_train_hat, y_test, y_test_hat, prepro):
         return pd.DataFrame(y_train_hat.idxmax(axis=1).astype(int)), pd.DataFrame(y_test_hat.idxmax(axis=1).astype(int))
     else:
         return y_train_hat, y_test_hat
+    
+def extract_interactions(model):
+    """
+    Extracts all feature interactions from the FIGS model by parsing through each additive tree.
+
+    Parameters:
+        model: A FIGS model containing an attribute `trees_`.
+               Each tree is comprised of hierarchically linked `Node` objects.
+
+    Returns:
+        interactions: A list of sets, where each set contains the features involved in an interaction.
+    """
+    interactions = []
+
+    def traverse_tree(node, current_features, current_depth):
+        """
+        Recursively traverse a tree to collect feature interactions.
+
+        Parameters:
+            node: The current `Node` object in the tree.
+            current_features: A set of features encountered so far in the current path.
+        """
+        if node.left is None and node.right is None:
+            interactions.append(current_features)
+            return
+
+        # Add the current feature to the set of features for this path
+        current_features.add('c' + str(node.feature+1))
+
+        # If the node has children, traverse them
+        if node.left is not None:
+            traverse_tree(node.left, current_features.copy(), current_depth=current_depth+1)
+        if node.right is not None:
+            traverse_tree(node.right, current_features.copy(), current_depth=current_depth+1)
+
+    # Loop through each tree in the model
+    # traverse_tree(model.trees_[0], set(), current_depth=0)
+    # return interactions
+    for tree in model.trees_:
+        # Start traversal for each tree
+        traverse_tree(tree, set(), current_depth=0)
+
+    return interactions
 
 # initialize args
 def add_main_args(parser):
@@ -287,51 +330,23 @@ def add_main_args(parser):
         "--max_depth", type=int, default=3, help="max depth of tree based models"
     )
     parser.add_argument(
-        "--pre_interaction", 
-        type=str,
-        choices=["l0", "l0l2", "None"],
-        default="l0l2", 
-        help="type of feature selection in ft_distill model pre-interaction expansion"
-    )
-    parser.add_argument(
-        "--pre_max_features", type=float, default=1, help="max fraction or max number of features allowed in pre-interaction with l0 based model"
-    )
-    parser.add_argument(
-        "--post_interaction", 
-        type=str,
-        choices=["l0", "l0l2", "None"],
-        default="l0l2", 
-        help="type of feature selection in ft_distill model post-interaction expansion"
-    )
-    parser.add_argument(
-        "--post_max_features", type=float, default=30, help="max frac or max number of features allowed in post-interaction with l0 based model"
-    )
-    parser.add_argument(
-        "--mo", type=bool, default=False, help="multi-output parameter for FTDRegressorCV"
-    )
-    parser.add_argument(
-        "--device", 
-        type=str,
-        default="cuda:0",
-        help="GPU device"
-    )
-    parser.add_argument(
         "--num_clusters", 
         type=int,
-        default=15, 
+        default=5, 
         help="max number of clusters of concepts"
     )
     parser.add_argument(
-        "--concepts_to_edit", 
-        type=str,
-        default='', 
-        help="string of concepts to update of format 'X,Y,Z' for integers X, Y, Z OR set to the string random_clusters to randomly edit clusters of concepts OR random_independent"
+        "--model_seed", 
+        type=int,
+        choices=[1, 2, 3],
+        default=1, 
+        help="seed of mdoel predictions to bootstrap"
     )
     parser.add_argument(
-        "--size_edit", 
+        "--num_bootstraps", 
         type=int,
-        default=19, 
-        help="number of random concepts to edit"
+        default=20, 
+        help="number of bootstraps"
     )
     return parser
 
@@ -378,132 +393,40 @@ if __name__ == "__main__":
     imodelsx.cache_save_utils.save_json(
         args=args, save_dir=save_dir_unique, fname="params.json", r=r
     )
-    
-    for seed in range(1, 4):
-        #ORIGINAL
-        
-        #load in tabular frozen predictions for distillation and logging original cbm accuracies
-        X_train, X_train_hat, X_test, X_test_hat, y_train, y_train_hat, y_test, y_test_hat = load_csvs(f'/home/mattyshen/DistillationEdit/data/cub_tabular/seed0_Joint0.01SigmoidModel__Seed{seed}')
+
+    all_interactions = {}
+
+    for i in range(args.num_bootstraps):
+        print(f'bootstrap: {i}')
+        np.random.seed(i)
+        X_train, X_train_hat, X_test, X_test_hat, y_train, y_train_hat, y_test, y_test_hat = load_csvs(f'/home/mattyshen/DistillationEdit/data/cub_tabular/seed0_Joint0.01SigmoidModel__Seed{args.model_seed}')
         X_train_model, X_test_model, clusters = process_X(X_train, X_train_hat, X_test, X_test_hat, args.X_type, args.num_clusters, args.thresh)
         y_train_model, y_test_model = process_y(y_train, y_train_hat, y_test, y_test_hat, args.Y_type)
-        
-        #log cbm prediction accuracies for train+val and test (using tabular frozen predictions)
-        r[f"cbm_true_seed{seed}_accuracy_trainval"] = accuracy_score(y_train_hat.idxmax(axis=1).astype(int), y_train)
-        r[f"cbm_true_seed{seed}_accuracy_test"] = accuracy_score(y_test_hat.idxmax(axis=1).astype(int), y_test)
-        
-        
-        #create distiller model using tabular frozen predictions
+
+        cur_bootstrap = pd.concat([X_train_model, y_train_model], axis = 1).sample(X_train_model.shape[0], replace=True)
+
+        X_bs = cur_bootstrap.iloc[:, np.arange(0, X_train_model.shape[1])]
+        y_bs = cur_bootstrap.iloc[:, np.arange(X_train_model.shape[1], X_train_model.shape[1]+y_train_model.shape[1])]
+
         model = idistill.model.get_model(args.task_type, args.model_name, args)
-        r, model = fit_model(model, X_train_model, y_train_model, None, r)
-        
-        #log distiller prediction accuracies for train+val and test
-        print('distiller true')
-        r = evaluate_model(model, X_train_model, X_test_model, y_train, y_test, "distiller_true", seed, r)
-        print('distiller cbm')
-        r = evaluate_model(model, X_train_model, X_test_model, y_train_hat.idxmax(axis=1).astype(int), y_test_hat.idxmax(axis=1).astype(int), "distiller_cbm", seed, r)
-        
-        cbm_train_mask = y_train_hat.idxmax(axis = 1).astype(int).to_numpy().reshape(-1, ) == y_train.values.reshape(-1, )
-        cbm_test_mask = y_test_hat.idxmax(axis = 1).astype(int).to_numpy().reshape(-1, ) == y_test.values.reshape(-1, )
-        
-        distiller_train_mask = np.argmax(model.predict(X_train_model), axis=1) == y_train.values.reshape(-1, )
-        distiller_test_mask = np.argmax(model.predict(X_test_model), axis=1) == y_test.values.reshape(-1, )
-        
-        r[f"%_correct_seed{seed}_overlap_trainval"] = np.mean(cbm_train_mask == distiller_train_mask)
-        r[f"%_correct_seed{seed}_overlap_test"] = np.mean(cbm_test_mask == distiller_test_mask)
-        
-        #EDITED
-        
-        #load model_seed in
-        sys.path.append('/home/mattyshen/iCBM')
-        sec_model = torch.load(f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{seed}/outputs/best_model_{seed}.pth').sec_model
-        sec_model.to(args.device)
-        #sec_model = model.sec_model
-        #model.eval()
-        sec_model.eval()
-        sys.path.append(path_to_repo)
+        r, model = fit_model(model, X_bs, y_bs, None, r)
 
-        # sec_model = torch.load(f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{seed}/outputs/best_model_{seed}.pth').sec_model
-        # sec_model = sec_model.to(args.device)
-        # sec_model.eval()
-        if args.concepts_to_edit == 'random_clusters':
-            num_sets = len(clusters.keys())
-            np.random.seed(0)
-            shuffled_indices = np.random.permutation(X_train_hat.index)
-            split_indices = np.array_split(shuffled_indices, num_sets)
-            for key, split in zip(clusters.keys(), split_indices):
-                curr_cte = [int(s[1:]) - 1 for s in clusters[key]]
-                X_train_hat.iloc[split, curr_cte] = X_train.iloc[split, curr_cte]
-                X_train_model.iloc[split, curr_cte] = X_train.iloc[split, curr_cte].astype(X_train_model.iloc[:, 0].dtype)
-            shuffled_indices_test = np.random.permutation(X_test_hat.index)
-            split_indices_test = np.array_split(shuffled_indices_test, num_sets)
-            for key, split in zip(clusters.keys(), split_indices_test):
-                curr_cte = [int(s[1:]) - 1 for s in clusters[key]]
-                X_test_hat.iloc[split, curr_cte] = X_test.iloc[split, curr_cte]
-                X_test_model.iloc[split, curr_cte] = X_test.iloc[split, curr_cte].astype(X_test_model.iloc[:, 0].dtype)
-        elif args.concepts_to_edit == 'random_independent':
-            np.random.seed(0)
-            
-            size_edit = args.size_edit
-            
-            ran_cov_train = [np.random.choice(np.arange(0, X_train_hat.shape[1]), size=size_edit, replace=False) for _ in range(X_train_hat.shape[0])]
+        cur_interactions = extract_interactions(model)
+        cur_interactions = list(set(frozenset(item) for item in cur_interactions))
 
-            X_train_hat_np = X_train_hat.values
-            X_train_model_np = X_train_model.values
-            X_train_np = X_train.values
-
-            idx_train = np.arange(X_train_hat.shape[0]).reshape(-1, 1)
-
-            X_train_hat_np[idx_train, ran_cov_train] = X_train_np[idx_train, ran_cov_train]
-            X_train_model_np[idx_train, ran_cov_train] = X_train_np[idx_train, ran_cov_train]
-
-            X_train_hat = pd.DataFrame(X_train_hat_np, columns=X_train_hat.columns).astype(X_train_hat.iloc[:, 0].dtype)
-            X_train_model = pd.DataFrame(X_train_model_np, columns=X_train_hat.columns).astype(X_train_model.iloc[:, 0].dtype)
-            
-            ran_cov_test = [np.random.choice(np.arange(0, X_test_hat.shape[1]), size=size_edit, replace=False) for _ in range(X_test_hat.shape[0])]
-
-            X_test_hat_np = X_test_hat.values
-            X_test_model_np = X_test_model.values
-            X_test_np = X_test.values
-
-            idx_test = np.arange(X_test_hat.shape[0]).reshape(-1, 1)
-
-            X_test_hat_np[idx_test, ran_cov_test] = X_test_np[idx_test, ran_cov_test]
-            X_test_model_np[idx_test, ran_cov_test] = X_test_np[idx_test, ran_cov_test]
-
-            X_test_hat = pd.DataFrame(X_test_hat_np, columns=X_test_hat.columns).astype(X_test_hat.iloc[:, 0].dtype)
-            X_test_model = pd.DataFrame(X_test_model_np, columns=X_test_hat.columns).astype(X_test_model.iloc[:, 0].dtype)
+        for inter in cur_interactions:
+            if inter not in all_interactions.keys():
+                all_interactions[inter] = 1
+            else:
+                all_interactions[inter] += 1
                 
-        else:
-            #editing concept predictions for second half model of CBM
-            concepts_to_edit = list(map(int, args.concepts_to_edit.split(',')))
-            X_train_hat.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit]
-            X_test_hat.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit]
-            #editing concept predictions for distiller model
-            X_train_model.iloc[:, concepts_to_edit] = X_train.iloc[:, concepts_to_edit].astype(X_train_model.iloc[:, 0].dtype)
-            X_test_model.iloc[:, concepts_to_edit] = X_test.iloc[:, concepts_to_edit].astype(X_test_model.iloc[:, 0].dtype)
-        
-        y_train_edited_cbm = sec_model(torch.tensor(X_train_hat.values, dtype=torch.float32).to(args.device))
-        y_test_edited_cbm = sec_model(torch.tensor(X_test_hat.values, dtype=torch.float32).to(args.device))
-        
-        y_train_edited_cbm = pd.DataFrame(y_train_edited_cbm.detach().cpu().numpy())
-        y_test_edited_cbm = pd.DataFrame(y_test_edited_cbm.detach().cpu().numpy())
-        
-        r[f"edited_cbm_true_seed{seed}_accuracy_trainval"] = accuracy_score(y_train_edited_cbm.idxmax(axis=1).astype(int), y_train)
-        r[f"edited_cbm_true_seed{seed}_accuracy_test"] = accuracy_score(y_test_edited_cbm.idxmax(axis=1).astype(int), y_test)
-        
-        #log distiller prediction accuracies for train+val and test
-        print('distiller edited true')
-        r = evaluate_model(model, X_train_model, X_test_model, y_train, y_test, "edited_distiller_true", seed, r)
-        print('distiller edited cbm')
-        r = evaluate_model(model, X_train_model, X_test_model, y_train_edited_cbm.idxmax(axis=1).astype(int), y_test_edited_cbm.idxmax(axis=1).astype(int), "edited_distiller_cbm", seed, r)
-        cbm_train_mask = y_train_edited_cbm.idxmax(axis = 1).astype(int).to_numpy().reshape(-1, ) == y_train.values.reshape(-1, )
-        cbm_test_mask = y_test_edited_cbm.idxmax(axis = 1).astype(int).to_numpy().reshape(-1, ) == y_test.values.reshape(-1, )
-        
-        distiller_train_mask = np.argmax(model.predict(X_train_model), axis=1) == y_train.values.reshape(-1, )
-        distiller_test_mask = np.argmax(model.predict(X_test_model), axis=1) == y_test.values.reshape(-1, )
-        
-        r[f"edited_%_correct_seed{seed}_overlap_trainval"] = np.mean(cbm_train_mask == distiller_train_mask)
-        r[f"edited_%_correct_seed{seed}_overlap_test"] = np.mean(cbm_test_mask == distiller_test_mask)
+    try:
+        import cPickle as pickle
+    except ImportError:  # Python 3.x
+        import pickle
+
+    with open(f'/home/mattyshen/DistillationEdit/results/figs_stability/stafigs_seed{args.model_seed}_nbootstraps{args.num_bootstraps}.p', 'wb') as fp:
+        pickle.dump(all_interactions, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
         
     # save results
