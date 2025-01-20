@@ -95,7 +95,7 @@ def find_thresh(linkage_matrix, min_clusters=10, max_clusters=15, step=0.1, coun
     if count > 3:
         print(max_clusters)
         return find_thresh(linkage_matrix, min_clusters=min_clusters, max_clusters=(max_clusters-5*4)-1, step=step, count = 0)
-    threshold = 4.9
+    threshold = 2.5
     while threshold < 10:
         clusters = fcluster(linkage_matrix, t=threshold, criterion='distance')
         num_clusters = len(set(clusters))
@@ -208,13 +208,25 @@ def process_X(X_train, X_train_hat, X_test, X_test_hat, prepro, num_clusters, th
         
     elif prepro == 'binary' and thresh > 0:
         f_gs = cluster_concepts(X_train_hat, num_clusters)
+        f_gs = {1:[1,3,5,7,8,11,12,15,16,19,20,21,22,24,26,27,40,41,42,43,46,49,50,53,55,56,60,62,64,65,66,69,70,71,72,77,78,79,80,83,84,85,87,88,90,91,92,93,94,95,102,106,107,108,110],
+                2:[4,6,10,13,14,17,18,23,25,29,54,73,76,86,89,97,98,104,105,111],
+                3:[2,9,28,30,32,33,34,35,36,37,38,39,47,48,51,52,81,96,99],
+                4:[31,44,45,57,58,59,61,63,67,68,74,75,82,100,101,103,109,112]
+        }
+        for k in f_gs.keys():
+            f_gs[k] = ['c'+str(i) for i in f_gs[k]]
         return (X_train_hat > thresh).astype(int), (X_test_hat > thresh).astype(int), f_gs
+    elif prepro == 'quantile' and thresh > 0:
+        f_gs = cluster_concepts(X_train_hat, num_clusters)
+        optimal_thresholds = np.quantile(X_train_hat, thresh, axis = 0)
+        
+        return (X_train_hat > optimal_thresholds).astype(int), (X_test_hat > optimal_thresholds).astype(int), f_gs
     else:
         f_gs = cluster_concepts(X_train_hat, num_clusters)
         optimal_thresholds = []
-        for class_idx in range(X_train_hat.shape[1]):
-            y_true_class = X_train.iloc[:, class_idx]
-            y_probs_class = X_train_hat.iloc[:, class_idx]
+        for cluster_idx in range(X_train_hat.shape[1]):
+            y_true_class = X_train.iloc[:, cluster_idx]
+            y_probs_class = X_train_hat.iloc[:, cluster_idx]
             optimal_thresholds.append(find_optimal_threshold(y_true_class, y_probs_class))
         optimal_thresholds = np.array(optimal_thresholds)
         
@@ -252,7 +264,7 @@ def add_main_args(parser):
     parser.add_argument(
         "--X_type", 
         type=str, 
-        choices=["probs", "binary", "cluster", "global", "gpt1", "gpt2", "gpt3", "gpt4"],
+        choices=["probs", "binary", "quantile", "cluster", "global", "gpt1", "gpt2", "gpt3", "gpt4"],
         default="binary", 
         help="Type of X"
     )

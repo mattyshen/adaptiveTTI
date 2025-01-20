@@ -9,7 +9,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
-    'save_dir': [join(repo_dir, 'results/gpt')],
+    'save_dir': [join(repo_dir, 'results/mold')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
 }
 
@@ -46,9 +46,16 @@ params_coupled_dict.update({('model_name',
                             'max_trees',
                             'max_rules',
                             'num_clusters'):
-                            [('FIGSRegressor', xt, 'logits', t, 'random_clusters', 25, 10, 3, 30, 90, 7)
+                            [('FIGSRegressor', xt, 'logits', 0.45, 'random_clusters', 25, 10, md, mt, mr, 7)
                            for xt in ['binary']
-                           for t in [0.45]]})
+                           for md in [2, 3, 4, 5]
+                           for mt in [15, 20, 30]
+                           for mr in [30, 45, 60, 90, 120]]+
+                           [('FIGSRegressor', xt, 'logits', 0.45, 'random_clusters', 25, 10, md, mt, mr, 7)
+                           for xt in ['binary']
+                           for md in [2]
+                           for mt in [15, 20, 30, 40]
+                           for mr in [30, 45, 60, 75, 90]]})
 # params_coupled_dict.update({('model_name',
 #                              'X_type',
 #                              'Y_type',
