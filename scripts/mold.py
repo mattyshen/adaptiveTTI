@@ -46,16 +46,11 @@ params_coupled_dict.update({('model_name',
                             'max_trees',
                             'max_rules',
                             'num_clusters'):
-                            [('FIGSRegressor', xt, 'logits', 0.45, 'random_clusters', 25, 10, md, mt, mr, 7)
+                            [('FIGSRegressor', xt, 'probs', 0.45, 'random_clusters', 25, 10, md, mt, mr, 7)
                            for xt in ['binary']
-                           for md in [2, 3, 4, 5]
+                           for md in [3, 4]
                            for mt in [15, 20, 30]
-                           for mr in [30, 45, 60, 90, 120]]+
-                           [('FIGSRegressor', xt, 'logits', 0.45, 'random_clusters', 25, 10, md, mt, mr, 7)
-                           for xt in ['binary']
-                           for md in [2]
-                           for mt in [15, 20, 30, 40]
-                           for mr in [30, 45, 60, 75, 90]]})
+                           for mr in [45, 60, 90, 120]]})
 # params_coupled_dict.update({('model_name',
 #                              'X_type',
 #                              'Y_type',
