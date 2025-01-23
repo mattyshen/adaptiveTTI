@@ -64,7 +64,7 @@ def evaluate_distiller(distiller, X_train, X_test, y_train, y_test, metric, task
     for split_name, (X_, y_) in zip(
         ["train", "test"], [(X_train, y_train), (X_test, y_test)]
     ):
-        y_pred_ = predict_distiller(distiller, X_)
+        y_pred_ = process_distiller_eval(distiller.predict(X_))
         r[f"distiller_{task}_{split_name}_{metric}"] = metric_fn(y_, y_pred_)
 
     return r
@@ -86,13 +86,6 @@ def evaluate_teacher(y_train_teacher, y_test_teacher, y_train, y_test, metric, t
         r[f"teacher_{task}_{split_name}_{metric}"] = metric_fn(y_teacher_, y_)
     
     return r
-
-def predict_distiller(distiller, X):
-    ### TODO: handle distiller prediction outputs to match metrics ###
-    
-    y_pred = np.argmax(distiller.predict(X), axis = 1)
-
-    return y_pred
 
 def predict_teacher(teacher, X):
     ### TODO: handle teacher prediction outputs (X is intended to be concept design matrix, output is intended to be logits)###
@@ -190,6 +183,13 @@ def process_distillation_data(X_train_teacher, X_test_teacher, y_train_teacher, 
     ### TODO: process (i.e. binarize, F1-max binarize) data for distillation ###
     
     return (X_train_teacher > 0.45).astype(int), (X_test_teacher > 0.45).astype(int), y_train_teacher, y_test_teacher
+
+def process_distiller_eval(y_distiller):
+    ### TODO: handle distiller prediction outputs to match metrics ###
+    
+    y_pred = np.argmax(y_distiller, axis = 1)
+
+    return y_pred
 
 def process_teacher_eval(y_teacher):
     ### TODO: process teacher model predictions for evaluations (sometimes we distill a teacher model using a regressor, but want to evaluate class prediction accuracy) ###
@@ -388,11 +388,8 @@ if __name__ == "__main__":
         X_test_d.iloc[i, cti_test[i]] = X_test.iloc[i, cti_test[i]]
         X_test_t.iloc[i, cti_train[i]] = X_test.iloc[i, cti_train[i]]
     
-    y_train_t_interv = predict_teacher(teacher, X_train_t)
-    y_test_t_interv = predict_teacher(teacher, X_test_t)
-    
-    y_train_t_eval_interv = process_teacher_eval(y_train_t_interv)
-    y_test_t_eval_interv = process_teacher_eval(y_test_t_interv)
+    y_train_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_train_t))
+    y_test_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_test_t))
     
     r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train_t_eval_interv, y_test_t_eval_interv, args.metric, "distillation_interv", r)
     r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction_interv", r)

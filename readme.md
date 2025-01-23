@@ -1,35 +1,21 @@
 This is an evolving repo optimized for machine-learning projects aimed at designing a new algorithm. They require sweeping over different hyperparameters, comparing to baselines, and iteratively refining an algorithm. Based of [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science).
 
-# Organization
-- `interpretDistill`: main code for modeling (e.g. model architecture)
-    - `binary_mapper.py` contains code that discretizes/ binary maps a dataset. This includes the Decision Tree Binary Mapper, the Gaussian Mixture Model Binary Mapper, and the FIGS Binary Mapper.
-    - `binary_mapper_utils.py` contains code for utility functions for the Binary Mappers.
-    - `continuous.py` keeps a function to determine whether a feature is a continuous feature across multiple files for continuity.
-    - `data.py` loads in datasets (currently all regression datasets) for experiments.
-    - `figs_d.py` contains a modified copy of the figs file from `imodels` to allow for debugging.
-    - `FIGS_nodes.py` contains code to help with FIGS distillation but is not used.
-    - `fourierDistill.py` contains the FT Distillation model.
-    - `model.py` loads in models for experiments.
-    - `params.py` keeps track of model hyperparameters. This file is likely not used in any experiments, though.
-    - `subset_predictors.py` contains subset (L0, L0L2) predictor models wrapped in sklearn-like functions.
-    - `tabdl.py` contains tabular DL models wrapped in sklearn-like functions.
-- `experiments`: code for runnning experiments (e.g. loading data, training models, evaluating models)
-    - `06_cv_bm_train_distill_model.py` contains code to train and distill (with FT Distill) a model for a specific dataset with specific hyperparameters.
-    - `07_cv_train_model.py` contains code to train a model for a specific dataset with specific hyperparameters.
-    - `08_figs_restructure.py` contains code to train a FIGS model for a specific dataset with specific hyperparameters and then restructures the FIGS model with FT Distill.
-    - Other `.py` (01-05) files are outdated/not important and the `.ipynb` file contains a notebook for debugging experiment files.
-- `scripts`: scripts for hyperparameter sweeps (python scripts that launch jobs in `experiments` folder with different hyperparams)
-    - `06_cv_bm_train_distill_models.py` contains code to train and distill (with FT Distill) models across a variety of datasets and hyperparameters.
-    - `06_XXX_cv_bm_train_distill_models.py` where `XXX` is `rf`, `tabdl`, `xgb`, or `figs` contains code to train and distill (with FT Distill) models across a variety of datasets and hyperparameters.
-    - `07_cv_train_model.py` contains code to train models across a variety of datasets and hyperparameters.
-    - `07_XXX_cv_train_models.py.py` where `XXX` is `ftd`, `rf`, `tabdl`, `xgb`, or `figs` contains code to train models across a variety of datasets and hyperparameters.
-    - `08_figs_restructures.py` contains code to train FIGS models across a variety of datasets with a variety of hyperparameters, and then restructures the FIGS model with FT Distill.
-    - Other `.py` (01-05) files are outdated/not important and the `.ipynb` file contains a notebook for debugging experiment files.
-- `notebooks`: jupyter notebooks for analyzing results and making figures
-    - `.ipynb` (01-04) files are outdated/not important and the `.ipynb` file contains a notebook for debugging experiment files.
-- `tests`: unit tests
-- `csv`: contain `.csv` files of results
-- `.ipynb` contain exploratory notebook work with some of these models and ideas discussed throughout the summer.
+# Distilling a Model Walk-through
+1. Make a copy of `experiments/distillation_starter.py` in the `experiments` folder.
+2. Fill out "### TODO: ... ###" in the copy file.
+    - `predict_teacher` returns the teacher's prediction
+    - `load_teacher_model` returns the loaded in teacher model from the path (models can be stored in the `models` folder).
+    -  `generate_tabular_distillation_data` returns the teacher predicted concept design matrices, the true concept design matrices, the predicted teacher outputs (often logits), and true outputs (often classes). Data can be stored in the `data` folder.
+    - `process_distillation_data` returns the data the distiller is trained on (often we need to binarize the teacher model's prediction for the distiller model)
+    - `process_distiller_eval` returns the distiller's modified prediction to match the metric being logged (sometimes we are using a regressor to distill a classifier DL model's logits, but want to log the distiller's classification performance, so we need to convert the distiller's predicted logits to class predictions)
+    - `process_teacher_eval` returns the teacher's modified prediction to match the metric being logged (i.e. a classifier DL model outputs logits, but want to log the model's classification performance, so we need to convert the logits to class predictions)
+3. Make a copy of `results/distillations_starter.py` in the `results` folder.
+3. Make a copy of `scripts/distillations_starter.py` in the `scripts` folder.
+4. Fill out distillation experiment parameters (parameters can be found, with descriptions, in the copy of `experiments/distillation_starter.py` file). The experiment parameters, summarized, consist of teacher model path, train and test data paths, distiller (FIGS) hyperparameters, metric being logged, and number of interactions to intervene on. Edit the `save_dir` path in `params_shared_dict` and `script_name` in the `submit_utils.run_args_list(...)` line at the bottom of the script.
+5. `cd` into the scripts folder and run the script.
+6. Make a copy of `notebooks/distillations_starter.ipynb` in the `notebooks` folder. Edit the paths in `results_dir = '../results/distillation_cub'` and `experiment_filename = '../experiments/distillation_cub.py'` lines
+7. Observe and investigate the results in the `.ipynb` file.
+
 
 # Features
 - scripts sweep over hyperparameters using easy-to-specify python code
