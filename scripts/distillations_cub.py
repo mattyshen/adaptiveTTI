@@ -29,7 +29,7 @@ params_coupled_dict.update({('teacher_path',
                              'metric'):
                             [(teacher_path, train_path, test_path, task_type, distiller_name, max_rules, max_trees, max_depth, metric)
                              for teacher_path in 
-                ['/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed1/outputs/best_model_1.pth']
+                [f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{s}/outputs/best_model_{s}.pth' for s in range(1, 4)]
                              for train_path in ['/home/mattyshen/iCBM/CUB/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/iCBM/CUB/CUB_processed/class_attr_data_10/test.pkl']
                              for task_type in ['regression']

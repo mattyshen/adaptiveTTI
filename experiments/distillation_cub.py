@@ -386,7 +386,7 @@ if __name__ == "__main__":
     cti_test = extract_adaptive_intervention(figs_distiller, X_test_d, figs_interactions, args.num_interactions_intervention)
     for i in range(len(cti_test)):
         X_test_d.iloc[i, cti_test[i]] = X_test.iloc[i, cti_test[i]]
-        X_test_t.iloc[i, cti_train[i]] = X_test.iloc[i, cti_train[i]]
+        X_test_t.iloc[i, cti_test[i]] = X_test.iloc[i, cti_test[i]]
     
     y_train_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_train_t))
     y_test_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_test_t))
