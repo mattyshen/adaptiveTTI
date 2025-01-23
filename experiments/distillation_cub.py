@@ -37,16 +37,16 @@ import idistill.data
 from idistill.ftd import FTDistillRegressorCV
 from idistill.whitebox_figs import FIGSRegressor
 
-def distill_model(distiller, X_train_teacher, X_train_teacher, r, feature_names = None):
+def distill_model(distiller, X_train_teacher, y_train_teacher, r, feature_names = None):
     """Distill the teacher model using the distiller model"""
     
     fit_parameters = inspect.signature(distiller.fit).parameters.keys()
     if "feature_names" in fit_parameters and feature_names is not None:
-        distiller.fit(X_train_teacher, X_train_teacher, feature_names=feature_names)
+        distiller.fit(X_train_teacher, y_train_teacher, feature_names=feature_names)
     else:
-        distiller.fit(X_train_teacher, X_train_teacher)
+        distiller.fit(X_train_teacher, y_train_teacher)
 
-    return r, model
+    return r, distiller
 
 def evaluate_distiller(distiller, X_train, X_test, y_train, y_test, metric, task, r):
     """Evaluate distiller performance on each split"""
@@ -102,19 +102,87 @@ def predict_teacher(teacher, X):
         
     return y_pred
 
-def load_teacher_model(model_path):
+def load_teacher_model(teacher_path):
     ### TODO: load in teacher model using model_path ###
     
     sys.path.append('/home/mattyshen/iCBM')
-    teacher = torch.load(model_path)
+    teacher = torch.load(teacher_path, weights_only=False)
     teacher.to('cuda:0')
     teacher.eval()
     sys.path.append(path_to_repo)
     
-    return model
+    return teacher
 
-def generate_tabular_distillation_data(model, train_path, test_path):
+def generate_tabular_distillation_data(teacher, train_path, test_path):
     ### TODO: generate teacher train and test data using model, train_path, and test_path ###
+    
+    sys.path.append('/home/mattyshen/iCBM/CUB')
+    from dataset import load_data
+    from config import BASE_DIR
+    
+    def get_cub_data(teacher, path, data = 'train', override_train = True, batch_size = 32):
+        with torch.no_grad():
+            if data == 'test':
+                test_dir = path
+                #print(test_dir)
+                loader = load_data([test_dir], True, False, batch_size, image_dir='images',
+                                   n_class_attr=2, override_train=override_train)
+            else:
+                train_dir = path
+                val_dir = '/home/mattyshen/iCBM/CUB/CUB_processed/class_attr_data_10/val.pkl'
+                #print(train_dir, val_dir)
+                loader = load_data([train_dir, val_dir], True, False, batch_size, image_dir='images',
+                                   n_class_attr=2, override_train=override_train)
+                
+            torch.manual_seed(0)
+            
+            attrs_true = []
+            attrs_hat = []
+            labels_true = []
+            labels_hat = []
+            for data_idx, data in enumerate(loader):
+                inputs, labels, attr_labels = data
+                attr_labels = torch.stack(attr_labels).t()
+
+                inputs_var = torch.autograd.Variable(inputs).to('cuda:0')
+                labels_var = torch.autograd.Variable(labels).to('cuda:0')
+                outputs = teacher(inputs_var)
+                class_outputs = outputs[0]
+
+                attr_outputs = [torch.nn.Sigmoid()(o) for o in outputs[1:]]
+                attr_outputs_sigmoid = attr_outputs
+
+                attrs_hat.append(torch.stack(attr_outputs).squeeze(2).detach().cpu().numpy())
+                attrs_true.append(attr_labels.T)
+                labels_hat.append(class_outputs.detach().cpu().numpy())
+                labels_true.append(labels)
+
+            X_hat = pd.DataFrame(np.concatenate(attrs_hat, axis=1).T, columns = [f'c{i}' for i in range(1, 113)])
+            X = pd.DataFrame(np.concatenate(attrs_true, axis = 1).T, columns = [f'c{i}' for i in range(1, 113)])
+
+            y = pd.Series(np.concatenate([l.numpy().reshape(-1, ) for l in labels_true]))
+            y_hat = pd.DataFrame(np.concatenate(labels_hat, axis = 0))
+
+            del attrs_hat
+            del labels
+            del labels_hat
+            del loader
+            del data
+            del inputs
+            del outputs
+            del class_outputs
+            del attr_outputs
+            del attr_outputs_sigmoid
+            del inputs_var
+            del labels_var
+            torch.cuda.empty_cache()
+
+            return X_hat, X, y_hat, y
+
+    X_train_teacher, X_train, y_train_teacher, y_train = get_cub_data(teacher, train_path)
+    X_test_teacher, X_test, y_test_teacher, y_test = get_cub_data(teacher, test_path, data = 'test')
+    
+    sys.path.append(path_to_repo)
     
     return X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher, y_train, y_test
     
@@ -126,18 +194,18 @@ def process_distillation_data(X_train_teacher, X_test_teacher, y_train_teacher, 
 def process_teacher_eval(y_teacher):
     ### TODO: process teacher model predictions for evaluations (sometimes we distill a teacher model using a regressor, but want to evaluate class prediction accuracy) ###
     
-    y_teacher_eval = y_train_hat.idxmax(axis = 1).astype(int).values
+    y_teacher_eval = y_teacher.idxmax(axis = 1).astype(int).values
     
     return y_teacher_eval
 
-def extract_interactions(model):
+def extract_interactions(distiller):
 
     interactions = []
 
     def traverse_tree(node, current_features, current_depth):
 
         if node.left is None and node.right is None:
-            cur_interactions.append((current_features, np.var(np.abs(node.value))))
+            tree_interactions.append((current_features, np.var(np.abs(node.value))))
             return
         if node.left is not None:
             current_features_l = current_features.copy()
@@ -148,10 +216,10 @@ def extract_interactions(model):
             current_features_r.append('!c' + str(node.feature+1))
             traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
 
-    for tree in model.trees_:
-        cur_interactions = []
+    for tree in distiller.trees_:
+        tree_interactions = []
         traverse_tree(tree, [], current_depth=0)
-        interactions.append(cur_interactions)
+        interactions.append(tree_interactions)
         
     return interactions
 
@@ -161,9 +229,9 @@ def get_argmax_max(vals, index):
     argmaxes = np.argsort(vals, axis=1)[:, -index]
     return maxes, argmaxes
 
-def extract_adaptive_intervention(model, X, X_true, number_of_top_paths, tol = 0.0001):
+def extract_adaptive_intervention(distiller, X, interactions, number_of_top_paths, tol = 0.0001):
     
-    test_pred_intervention = model.predict(X, by_tree = True)
+    test_pred_intervention = distiller.predict(X, by_tree = True)
 
     concepts_to_edit = [[] for _ in range(X.shape[0])]
     variances = np.var(np.abs(test_pred_intervention), axis = 1)
@@ -171,7 +239,7 @@ def extract_adaptive_intervention(model, X, X_true, number_of_top_paths, tol = 0
     for idx in range(number_of_top_paths):
         maxes, argmaxes = get_argmax_max(variances, idx+1)
         for i, (tree_idx, var) in enumerate(zip(argmaxes, maxes)):
-            for paths in cur_interactions[tree_idx]:
+            for paths in interactions[tree_idx]:
                 if abs(paths[1] - var) < tol:
                     concept_indexes = [int(p[1:])-1 if p[0] != '!' else int(p[2:])-1 for p in paths[0]]
                     concepts_to_edit[i].append(concept_indexes)
@@ -195,7 +263,7 @@ def add_main_args(parser):
         help="directory for saving",
     )
     parser.add_argument(
-        "--model_path",
+        "--teacher_path",
         type=str,
         default=join(path_to_repo, "models"),
         help="path to teacher model",
@@ -288,7 +356,7 @@ if __name__ == "__main__":
         args=args, save_dir=save_dir_unique, fname="params.json", r=r
     )
     
-    teacher = load_teacher_model(args.model_path)
+    teacher = load_teacher_model(args.teacher_path)
     
     X_train_t, X_test_t, X_train, X_test, y_train_t, y_test_t, y_train, y_test = generate_tabular_distillation_data(teacher, args.train_path, args.test_path)
     
@@ -299,7 +367,7 @@ if __name__ == "__main__":
     
     figs_distiller = idistill.model.get_model(args.task_type, args.distiller_name, args)
     
-    figs_distiller = distill_model(figs_distiller, X_train_d, y_train_d, r)
+    r, figs_distiller = distill_model(figs_distiller, X_train_d, y_train_d, r)
     
     r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
     r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
@@ -310,12 +378,12 @@ if __name__ == "__main__":
     
     figs_interactions = extract_interactions(figs_distiller)
     
-    cti_train = extract_adaptive_intervention(figs_distiller, X_train_d, args.num_interactions_intervention)
+    cti_train = extract_adaptive_intervention(figs_distiller, X_train_d, figs_interactions, args.num_interactions_intervention)
     for i in range(len(cti_train)):
         X_train_d.iloc[i, cti_train[i]] = X_train.iloc[i, cti_train[i]]
         X_train_t.iloc[i, cti_train[i]] = X_train.iloc[i, cti_train[i]]
     
-    cti_test = extract_adaptive_intervention(figs_distiller, X_test_d, args.num_interactions_intervention)
+    cti_test = extract_adaptive_intervention(figs_distiller, X_test_d, figs_interactions, args.num_interactions_intervention)
     for i in range(len(cti_test)):
         X_test_d.iloc[i, cti_test[i]] = X_test.iloc[i, cti_test[i]]
         X_test_t.iloc[i, cti_train[i]] = X_test.iloc[i, cti_train[i]]

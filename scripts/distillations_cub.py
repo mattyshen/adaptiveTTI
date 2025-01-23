@@ -9,7 +9,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
-    'save_dir': [join(repo_dir, 'results/distillation_skeleton')],
+    'save_dir': [join(repo_dir, 'results/distillation_cub')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
 }
 
@@ -18,7 +18,7 @@ params_shared_dict = {
 
 params_coupled_dict = {}
 
-params_coupled_dict.update({('model_path',
+params_coupled_dict.update({('teacher_path',
                              'train_path',
                              'test_path',
                              'task_type',
@@ -27,10 +27,11 @@ params_coupled_dict.update({('model_path',
                              'max_trees',
                              'max_depth',
                              'metric'):
-                            [(model_path, train_path, test_path, task_type, distiller_name, max_rules, max_trees, max_depth, metric)
-                             for model_path in []
-                             for train_path in []
-                             for test_path in []
+                            [(teacher_path, train_path, test_path, task_type, distiller_name, max_rules, max_trees, max_depth, metric)
+                             for teacher_path in 
+                ['/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed1/outputs/best_model_1.pth']
+                             for train_path in ['/home/mattyshen/iCBM/CUB/CUB_processed/class_attr_data_10/train.pkl']
+                             for test_path in ['/home/mattyshen/iCBM/CUB/CUB_processed/class_attr_data_10/test.pkl']
                              for task_type in ['regression']
                              for distiller_name in ['FIGSRegressor']
                              for max_rules in [100]
@@ -46,7 +47,7 @@ args_list = submit_utils.get_args_list(
 )
 submit_utils.run_args_list(
     args_list,
-    script_name=join(repo_dir, 'experiments', 'distillation_skeleton.py'),
+    script_name=join(repo_dir, 'experiments', 'distillation_cub.py'),
     actually_run=True,
     n_cpus=len(os.sched_getaffinity(0)),
 )

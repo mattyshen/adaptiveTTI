@@ -37,16 +37,16 @@ import idistill.data
 from idistill.ftd import FTDistillRegressorCV
 from idistill.whitebox_figs import FIGSRegressor
 
-def distill_model(distiller, X_train_teacher, X_train_teacher, r, feature_names = None):
+def distill_model(distiller, X_train_teacher, y_train_teacher, r, feature_names = None):
     """Distill the teacher model using the distiller model"""
     
     fit_parameters = inspect.signature(distiller.fit).parameters.keys()
     if "feature_names" in fit_parameters and feature_names is not None:
-        distiller.fit(X_train_teacher, X_train_teacher, feature_names=feature_names)
+        distiller.fit(X_train_teacher, y_train_teacher, feature_names=feature_names)
     else:
-        distiller.fit(X_train_teacher, X_train_teacher)
+        distiller.fit(X_train_teacher, y_train_teacher)
 
-    return r, model
+    return r, distiller
 
 def evaluate_distiller(distiller, X_train, X_test, y_train, y_test, metric, task, r):
     """Evaluate distiller performance on each split"""
@@ -124,7 +124,7 @@ def extract_interactions(model):
     def traverse_tree(node, current_features, current_depth):
 
         if node.left is None and node.right is None:
-            cur_interactions.append((current_features, np.var(np.abs(node.value))))
+            tree_interactions.append((current_features, np.var(np.abs(node.value))))
             return
         if node.left is not None:
             current_features_l = current_features.copy()
@@ -136,9 +136,9 @@ def extract_interactions(model):
             traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
 
     for tree in model.trees_:
-        cur_interactions = []
+        tree_interactions = []
         traverse_tree(tree, [], current_depth=0)
-        interactions.append(cur_interactions)
+        interactions.append(tree_interactions)
         
     return interactions
 
@@ -148,7 +148,7 @@ def get_argmax_max(vals, index):
     argmaxes = np.argsort(vals, axis=1)[:, -index]
     return maxes, argmaxes
 
-def extract_adaptive_intervention(model, X, X_true, number_of_top_paths, tol = 0.0001):
+def extract_adaptive_intervention(model, X, interactions, number_of_top_paths, tol = 0.0001):
     
     test_pred_intervention = model.predict(X, by_tree = True)
 
@@ -158,7 +158,7 @@ def extract_adaptive_intervention(model, X, X_true, number_of_top_paths, tol = 0
     for idx in range(number_of_top_paths):
         maxes, argmaxes = get_argmax_max(variances, idx+1)
         for i, (tree_idx, var) in enumerate(zip(argmaxes, maxes)):
-            for paths in cur_interactions[tree_idx]:
+            for paths in interactions[tree_idx]:
                 if abs(paths[1] - var) < tol:
                     concept_indexes = [int(p[1:])-1 if p[0] != '!' else int(p[2:])-1 for p in paths[0]]
                     concepts_to_edit[i].append(concept_indexes)
@@ -286,7 +286,7 @@ if __name__ == "__main__":
     
     figs_distiller = idistill.model.get_model(args.task_type, args.distiller_name, args)
     
-    figs_distiller = distill_model(figs_distiller, X_train_d, y_train_d, r)
+    r, figs_distiller = distill_model(figs_distiller, X_train_d, y_train_d, r)
     
     r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
     r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
