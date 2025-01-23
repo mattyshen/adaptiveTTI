@@ -575,6 +575,8 @@ class FIGS(BaseEstimator):
             importance_data.append(importance_data_tree)
 
         self.importance_data_ = importance_data
+        
+        
 
         return self
 
@@ -640,7 +642,7 @@ class FIGS(BaseEstimator):
                 s = s.replace(f"X_{i}", feature_names[i])
         return s
 
-    def predict(self, X, categorical_features=None):
+    def predict(self, X, categorical_features=None, by_tree=False):
         if hasattr(self, "_encoder"):
             X = self._encode_categories(
                 X, categorical_features=categorical_features)
@@ -648,12 +650,15 @@ class FIGS(BaseEstimator):
         preds = np.zeros((X.shape[0], self.n_outputs, len(self.trees_)))
         for i, tree in enumerate(self.trees_):
             preds[:, :, i] += self._predict_tree(tree, X)
-        return preds
+        
         if isinstance(self, RegressorMixin):
             if self.need_to_reshape:
                 return preds.reshape(-1, )
             else:
-                return preds
+                if by_tree:
+                    return preds
+                else:
+                    return np.sum(preds, axis = 2)
         elif isinstance(self, ClassifierMixin):
             preds = np.argmax(preds, axis = 1).reshape(-1, 1)
             preds = np.vectorize(self.classes_.get)(preds)

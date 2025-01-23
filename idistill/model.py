@@ -3,7 +3,7 @@ import xgboost as xgb
 
 #from imodels import FIGSRegressor, FIGSClassifier
 
-from idistill.figs_distiller import FIGSHydraRegressor, FIGSRegressor, FIGSClassifier
+from idistill.whitebox_figs import FIGSHydraRegressor, FIGSRegressor, FIGSClassifier
 from idistill.ftd import FTDistillRegressor, FTDistillRegressorCV, FTDistillClassifierCV
 
 from idistill.subset_predictors import L0L2RegressorCV
