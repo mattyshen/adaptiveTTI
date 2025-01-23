@@ -89,16 +89,27 @@ def evaluate_teacher(y_train_teacher, y_test_teacher, y_train, y_test, metric, t
 
 def predict_distiller(distiller, X):
     ### TODO: handle distiller prediction outputs to match metrics ###
+    
+    y_pred = np.argmax(distiller.predict(X), axis = 1)
 
     return y_pred
 
 def predict_teacher(teacher, X):
-    ### TODO: handle teacher prediction outputs (X is intended to be concept design matrix)###
+    ### TODO: handle teacher prediction outputs (X is intended to be concept design matrix, output is intended to be logits)###
 
+    y_pred_torch = teacher.sec_model(torch.tensor(X.values, dtype=torch.float32).to('cuda:0'))
+    y_pred = pd.DataFrame(y_pred_torch.detach().cpu().numpy())
+        
     return y_pred
 
 def load_teacher_model(model_path):
     ### TODO: load in teacher model using model_path ###
+    
+    sys.path.append('/home/mattyshen/iCBM')
+    teacher = torch.load(model_path)
+    teacher.to('cuda:0')
+    teacher.eval()
+    sys.path.append(path_to_repo)
     
     return model
 
@@ -108,12 +119,14 @@ def generate_tabular_distillation_data(model, train_path, test_path):
     return X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher, y_train, y_test
     
 def process_distillation_data(X_train_teacher, X_test_teacher, y_train_teacher, y_test_teacher):
-    ### TODO: process (i.e. binarize) data for distillation ###
+    ### TODO: process (i.e. binarize, F1-max binarize) data for distillation ###
     
-    return X_train_teacher, X_test_teacher, y_train_teacher, y_test_teacher
+    return (X_train_teacher > 0.45).astype(int), (X_test_teacher > 0.45).astype(int), y_train_teacher, y_test_teacher
 
 def process_teacher_eval(y_teacher):
     ### TODO: process teacher model predictions for evaluations (sometimes we distill a teacher model using a regressor, but want to evaluate class prediction accuracy) ###
+    
+    y_teacher_eval = y_train_hat.idxmax(axis = 1).astype(int).values
     
     return y_teacher_eval
 
@@ -224,6 +237,9 @@ def add_main_args(parser):
     )
     parser.add_argument(
         "--metric", type=str, default="accuracy", help="metric to log distillation and prediction performance"
+    )
+    parser.add_argument(
+        "--num_interactions_intervention", type=int, default=3, help="max interactions to intervene on"
     )
 
     return parser
