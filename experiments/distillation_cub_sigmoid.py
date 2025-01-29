@@ -149,8 +149,7 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
                 outputs = teacher(inputs_var)
                 class_outputs = outputs[0]
 
-                attr_outputs = outputs[1:] #[torch.nn.Sigmoid()(o) for o in outputs[1:]]
-                #attr_outputs_sigmoid = attr_outputs
+                attr_outputs = [torch.nn.Sigmoid()(o) for o in outputs[1:]]
 
                 attrs_hat.append(torch.stack(attr_outputs).squeeze(2).detach().cpu().numpy())
                 attrs_true.append(attr_labels.T)
@@ -188,7 +187,8 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
 def process_distillation_data(X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher):
     ### TODO: process (i.e. binarize, F1-max binarize) data for distillation ###
     
-    thresh = 0
+    best_t = np.argmin([np.mean(((X_train_teacher.values > t).astype(int) - X_train.values)**2) for t in np.arange(0, 1, 0.01)])
+    thresh = np.arange(0, 1, 0.01)[best_t]
     
     return (X_train_teacher > thresh).astype(int), (X_test_teacher > thresh).astype(int), y_train_teacher, y_test_teacher
 

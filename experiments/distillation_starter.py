@@ -37,19 +37,19 @@ import idistill.data
 from idistill.ftd import FTDistillRegressorCV
 from idistill.whitebox_figs import FIGSRegressor
 
-def distill_model(distiller, X_train_teacher, y_train_teacher, r, feature_names = None):
-    """Distill the teacher model using the distiller model"""
+def distill_model(student, X_train_teacher, y_train_teacher, r, feature_names = None):
+    """Distill the teacher model using the student model"""
     
-    fit_parameters = inspect.signature(distiller.fit).parameters.keys()
+    fit_parameters = inspect.signature(student.fit).parameters.keys()
     if "feature_names" in fit_parameters and feature_names is not None:
-        distiller.fit(X_train_teacher, y_train_teacher, feature_names=feature_names)
+        student.fit(X_train_teacher, y_train_teacher, feature_names=feature_names)
     else:
-        distiller.fit(X_train_teacher, y_train_teacher)
+        student.fit(X_train_teacher, y_train_teacher)
 
-    return r, distiller
+    return r, student
 
-def evaluate_distiller(distiller, X_train, X_test, y_train, y_test, metric, task, r):
-    """Evaluate distiller performance on each split"""
+def evaluate_student(student, X_train, X_test, y_train, y_test, metric, task, r):
+    """Evaluate student performance on each split"""
     
     metrics = {
             "accuracy": accuracy_score,
@@ -64,8 +64,8 @@ def evaluate_distiller(distiller, X_train, X_test, y_train, y_test, metric, task
     for split_name, (X_, y_) in zip(
         ["train", "test"], [(X_train, y_train), (X_test, y_test)]
     ):
-        y_pred_ = process_distiller_eval(distiller.predict(X_))
-        r[f"distiller_{task}_{split_name}_{metric}"] = metric_fn(y_, y_pred_)
+        y_pred_ = process_student_eval(student.predict(X_))
+        r[f"student_{task}_{split_name}_{metric}"] = metric_fn(y_, y_pred_)
 
     return r
 
@@ -87,28 +87,28 @@ def evaluate_teacher(y_train_teacher, y_test_teacher, y_train, y_test, metric, t
     
     return r
 
-def predict_teacher(teacher, X):
+def predict_teacher(teacher, X, gpu=0):
     ### TODO: handle teacher prediction outputs (X is intended to be concept design matrix)###
 
     return y_pred
 
-def load_teacher_model(model_path):
-    ### TODO: load in teacher model using model_path ###
+def load_teacher_model(teacher_path, gpu=0):
+    ### TODO: load in teacher model using teacher_path ###
     
     return model
 
-def generate_tabular_distillation_data(model, train_path, test_path):
+def generate_tabular_distillation_data(model, train_path, test_path, gpu=0):
     ### TODO: generate teacher train and test data using model, train_path, and test_path ###
     
     return X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher, y_train, y_test
     
-def process_distillation_data(X_train_teacher, X_test_teacher, y_train_teacher, y_test_teacher):
+def process_distillation_data(X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher):
     ### TODO: process (i.e. binarize) data for distillation ###
     
     return X_train_teacher, X_test_teacher, y_train_teacher, y_test_teacher
 
-def process_distiller_eval(y_distiller):
-    ### TODO: handle distiller prediction outputs to match metrics ###
+def process_student_eval(y_student):
+    ### TODO: handle student prediction outputs to match metrics ###
 
     return y_pred
 
@@ -182,7 +182,7 @@ def add_main_args(parser):
         help="directory for saving",
     )
     parser.add_argument(
-        "--model_path",
+        "--teacher_path",
         type=str,
         default=join(path_to_repo, "models"),
         help="path to teacher model",
@@ -207,17 +207,17 @@ def add_main_args(parser):
         help="type of task"
     )
     parser.add_argument(
-        "--distiller_name", 
+        "--student_name", 
         type=str,
         choices=["FIGSRegressor", "FIGSClassifier", "XGBRegressor", "XGBClassifier"],
         default="FIGSRegressor", 
-        help="distiller name"
+        help="student name"
     )
     parser.add_argument(
-        "--max_rules", type=int, default=100, help="max rules of FIGS model"
+        "--max_rules", type=int, default=125, help="max rules of FIGS model"
     )
     parser.add_argument(
-        "--max_trees", type=int, default=20, help="max trees of FIGS model"
+        "--max_trees", type=int, default=25, help="max trees of FIGS model"
     )
     parser.add_argument(
         "--max_depth", type=int, default=4, help="max depth of tree based models"
@@ -227,6 +227,9 @@ def add_main_args(parser):
     )
     parser.add_argument(
         "--num_interactions_intervention", type=int, default=3, help="max interactions to intervene on"
+    )
+    parser.add_argument(
+        "--gpu", type=int, default=0, help="gpu device"
     )
 
     return parser
@@ -275,45 +278,83 @@ if __name__ == "__main__":
         args=args, save_dir=save_dir_unique, fname="params.json", r=r
     )
     
-    teacher = load_teacher_model(args.model_path)
+    teacher = load_teacher_model(args.teacher_path, args.gpu)
     
-    X_train_t, X_test_t, X_train, X_test, y_train_t, y_test_t, y_train, y_test = generate_tabular_distillation_data(teacher, args.train_path, args.test_path)
+    X_train_t, X_test_t, X_train, X_test, y_train_t, y_test_t, y_train, y_test = generate_tabular_distillation_data(teacher, args.train_path, args.test_path, args.gpu)
     
-    X_train_d, X_test_d, y_train_d, y_test_d = process_distillation_data(X_train_t, X_test_t, y_train_t, y_test_t)
+    X_train_d, X_test_d, y_train_d, y_test_d = process_distillation_data(X_train_t, X_test_t, X_train, X_test, y_train_t, y_test_t)
     
     y_train_t_eval = process_teacher_eval(y_train_t)
     y_test_t_eval = process_teacher_eval(y_test_t)
     
-    figs_distiller = idistill.model.get_model(args.task_type, args.distiller_name, args)
+    figs_student = idistill.model.get_model(args.task_type, args.student_name, args)
     
-    r, figs_distiller = distill_model(figs_distiller, X_train_d, y_train_d, r)
+    r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
     
-    r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
-    r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
+    r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
+    r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
     
     r = evaluate_teacher(y_train_t_eval, y_test_t_eval, y_train, y_test, args.metric, "prediction", r)
     
-    ### FIGS based concept editing ###
+    ### adaptive FIGS concept editing ###
     
-    figs_interactions = extract_interactions(figs_distiller)
-    
-    cti_train = extract_adaptive_intervention(figs_distiller, X_train_d, args.num_interactions_intervention)
+    figs_interactions = extract_interactions(figs_student)
+
+    X_train_d_edit = X_train_d.copy()
+    X_train_t_edit = X_train_t.copy()
+
+    train_q5 = np.quantile(X_train_t, 0.05, axis = 0)
+    train_q95 = np.quantile(X_train_t, 0.95, axis = 0)
+
+    cti_train = extract_adaptive_intervention(figs_student, X_train_d, figs_interactions, args.num_interactions_intervention)
+
     for i in range(len(cti_train)):
-        X_train_d.iloc[i, cti_train[i]] = X_train.iloc[i, cti_train[i]]
-        X_train_t.iloc[i, cti_train[i]] = X_train.iloc[i, cti_train[i]]
-    
-    cti_test = extract_adaptive_intervention(figs_distiller, X_test_d, args.num_interactions_intervention)
+        X_train_d_edit.iloc[i, cti_train[i]] = X_train.iloc[i, cti_train[i]]
+        X_train_t_edit.iloc[i, cti_train[i]] = train_q5[cti_train[i]]*(X_train.iloc[i, cti_train[i]] == 0) + train_q95[cti_train[i]]*(X_train.iloc[i, cti_train[i]] == 1)
+
+    cti_test = extract_adaptive_intervention(figs_student, X_test_d, figs_interactions, args.num_interactions_intervention)
+
+    X_test_d_edit = X_test_d.copy()
+    X_test_t_edit = X_test_t.copy()
+
     for i in range(len(cti_test)):
-        X_test_d.iloc[i, cti_test[i]] = X_test.iloc[i, cti_test[i]]
-        X_test_t.iloc[i, cti_train[i]] = X_test.iloc[i, cti_train[i]]
+        X_test_d_edit.iloc[i, cti_test[i]] = X_test.iloc[i, cti_test[i]]
+        X_test_t_edit.iloc[i, cti_test[i]] = train_q5[cti_test[i]]*(X_test.iloc[i, cti_test[i]] == 0) + train_q95[cti_test[i]]*(X_test.iloc[i, cti_test[i]] == 1)
+
+    y_train_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_train_t_edit, args.gpu))
+    y_test_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_edit, args.gpu))
+
+    r = evaluate_student(figs_student, X_train_d_edit, X_test_d_edit, y_train_t_eval_interv, y_test_t_eval_interv, args.metric, "distillation_adap_interv", r)
+    r = evaluate_student(figs_student, X_train_d_edit, X_test_d_edit, y_train, y_test, args.metric, "prediction_adap_interv", r)
+
+    r = evaluate_teacher(y_train_t_eval_interv, y_test_t_eval_interv, y_train, y_test, args.metric, "prediction_adap_interv", r)
     
-    y_train_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_train_t))
-    y_test_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_test_t))
+    ### random FIGS concept editing ###
     
-    r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train_t_eval_interv, y_test_t_eval_interv, args.metric, "distillation_interv", r)
-    r = evaluate_distiller(figs_distiller, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction_interv", r)
+    cti_r_train = [np.random.choice(np.arange(0, 112), size=len(c), replace=False) for c in cti_train]
+    cti_r_test = [np.random.choice(np.arange(0, 112), size=len(c), replace=False) for c in cti_test]
     
-    r = evaluate_teacher(y_train_t_eval_interv, y_test_t_eval_interv, y_train, y_test, args.metric, "prediction_interv", r)
+    X_train_d_r_edit = X_train_d.copy()
+    X_train_t_r_edit = X_train_t.copy()
+
+    for i in range(len(cti_r_train)):
+        X_train_d_r_edit.iloc[i, cti_r_train[i]] = X_train.iloc[i, cti_r_train[i]]
+        X_train_t_r_edit.iloc[i, cti_r_train[i]] = train_q5[cti_r_train[i]]*(X_train.iloc[i, cti_r_train[i]] == 0) + train_q95[cti_r_train[i]]*(X_train.iloc[i, cti_r_train[i]] == 1)
+
+    X_test_d_r_edit = X_test_d.copy()
+    X_test_t_r_edit = X_test_t.copy()
+
+    for i in range(len(cti_r_test)):
+        X_test_d_r_edit.iloc[i, cti_r_test[i]] = X_test.iloc[i, cti_r_test[i]]
+        X_test_t_r_edit.iloc[i, cti_r_test[i]] = train_q5[cti_r_test[i]]*(X_test.iloc[i, cti_r_test[i]] == 0) + train_q95[cti_r_test[i]]*(X_test.iloc[i, cti_r_test[i]] == 1)
+
+    y_train_t_eval_r_interv = process_teacher_eval(predict_teacher(teacher, X_train_t_r_edit, args.gpu))
+    y_test_t_eval_r_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_r_edit, args.gpu))
+
+    r = evaluate_student(figs_student, X_train_d_r_edit, X_test_d_r_edit, y_train_t_eval_r_interv, y_test_t_eval_r_interv, args.metric, "distillation_rand_interv", r)
+    r = evaluate_student(figs_student, X_train_d_r_edit, X_test_d_r_edit, y_train, y_test, args.metric, "prediction_rand_interv", r)
+
+    r = evaluate_teacher(y_train_t_eval_r_interv, y_test_t_eval_r_interv, y_train, y_test, args.metric, "prediction_rand_interv", r)
         
     # save results
     print(f'save_dir_unique: {save_dir_unique}')

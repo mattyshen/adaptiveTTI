@@ -532,8 +532,11 @@ class FIGS(BaseEstimator):
                     pos_count = value_counts[1.0]
                 except KeyError:
                     pos_count = 0
-
+                
                 value_sklearn = np.array([neg_count, pos_count], dtype=float)
+                
+                if neg_count + pos_count == 0:
+                    value_sklearn[0] = X.shape[0]
 
                 node.setattrs(node_id=next(node_counter),
                               value_sklearn=value_sklearn)

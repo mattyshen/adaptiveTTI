@@ -9,7 +9,7 @@ repo_dir = dirname(dirname(os.path.abspath(__file__)))
 
 # List of values to sweep over (sweeps over all combinations of these)
 params_shared_dict = {
-    'save_dir': [join(repo_dir, 'results/distillation_cub/cub')],
+    'save_dir': [join(repo_dir, 'results/distillation_cub/cub_sigmoid')],
     'use_cache': [1], # pass binary values with 0/1 instead of the ambiguous strings True/False
 }
 
@@ -48,15 +48,15 @@ params_coupled_dict.update({('teacher_path',
                              'max_trees',
                              'max_depth',
                              'gpu'):
-                            [('cub/outputs/best_Joint0.01_model_1.pth', train_path, test_path, 125, 25, 4, 0)
+                            [('cub_sigmoid/outputs/best_model_large_1.pth', train_path, test_path, 125, 25, 4, 0)
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
                             ]+
-                           [('cub/outputs/best_Joint0.01_model_2.pth', train_path, test_path, 125, 25, 4, 1)
+                           [('cub_sigmoid/outputs/best_model_med_1.pth', train_path, test_path, 125, 25, 4, 1)
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
                             ]+
-                           [('cub/outputs/best_Joint0.01_model_3.pth', train_path, test_path, 125, 25, 4, 2)
+                           [('cub_sigmoid/outputs/best_model_small_1.pth', train_path, test_path, 125, 25, 4, 2)
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
                             ]})
@@ -67,7 +67,7 @@ args_list = submit_utils.get_args_list(
 )
 submit_utils.run_args_list(
     args_list,
-    script_name=join(repo_dir, 'experiments', 'distillation_cub.py'),
+    script_name=join(repo_dir, 'experiments', 'distillation_cub_sigmoid.py'),
     actually_run=True,
     n_cpus=len(os.sched_getaffinity(0)),
 )
