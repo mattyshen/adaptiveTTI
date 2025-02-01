@@ -14,7 +14,7 @@ def get_model(task_type, model_name, args):
             #model = MultiOutputRegressor(FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth))
             model = FIGSHydraRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth)
         elif model_name == 'FIGSRegressor':
-            model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth)
+            model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth, min_impurity_decrease=args.min_impurity_decrease)
         elif model_name == 'XGBoostRegressor':
             model = xgb.XGBRegressor(n_estimators=args.max_trees, max_depth=args.max_depth)
         elif model_name == 'FTDHydraRegressor':

@@ -312,6 +312,9 @@ def add_main_args(parser):
         "--max_depth", type=int, default=4, help="max depth of tree based models"
     )
     parser.add_argument(
+        "--min_impurity_decrease", type=float, default=0, help="minimum impurity decrease for tree based models"
+    )
+    parser.add_argument(
         "--metric", type=str, default="accuracy", help="metric to log distillation and prediction performance"
     )
     parser.add_argument(
@@ -380,6 +383,9 @@ if __name__ == "__main__":
     
     r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
     
+    r['num_trees'] = len(figs_student.trees_)
+    r['num_rules'] = figs_student.complexity_
+    
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
     
@@ -388,6 +394,8 @@ if __name__ == "__main__":
     ### adaptive FIGS concept editing ###
     
     figs_interactions = extract_interactions(figs_student)
+    
+    r['depth'] = max([max([len(i[0]) for i in t]) for t in figs_interactions])
 
     X_train_d_edit = X_train_d.copy()
     X_train_t_edit = X_train_t.copy()

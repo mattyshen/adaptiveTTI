@@ -35,7 +35,7 @@ sys.path.append(path_to_repo)
 import idistill.model
 import idistill.data
 from idistill.ftd import FTDistillRegressorCV
-from idistill.whitebox_figs import FIGSRegressor
+from idistill.whitebox_figs import FIGSRegressorCV
 
 def distill_model(student, X_train_teacher, y_train_teacher, r, feature_names = None):
     """Distill the teacher model using the student model"""
@@ -134,8 +134,13 @@ def extract_interactions(model):
             current_features_r = current_features.copy()
             current_features_r.append('!c' + str(node.feature+1))
             traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
-
-    for tree in model.trees_:
+    
+    try:
+        trees = model.trees_
+    except:
+        trees = model.figs.trees_
+        
+    for tree in trees:
         tree_interactions = []
         traverse_tree(tree, [], current_depth=0)
         interactions.append(tree_interactions)
@@ -287,9 +292,16 @@ if __name__ == "__main__":
     y_train_t_eval = process_teacher_eval(y_train_t)
     y_test_t_eval = process_teacher_eval(y_test_t)
     
-    figs_student = idistill.model.get_model(args.task_type, args.student_name, args)
+    figs_student = FIGSRegressorCV(n_rules_list=[90, 125, 200], n_trees_list=[25, 30], depth_list=[4], min_impurity_decrease_list=[0]) #idistill.model.get_model(args.task_type, args.student_name, args)
     
     r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
+    
+    r['max_trees'] = figs_student.max_trees
+    r['max_rules'] = figs_student.max_rules
+    r['max_depth'] = figs_student.max_depth
+    
+    r['n_trees'] = len(figs_student.figs.trees_)
+    r['n_rules'] = figs_student.figs.complexity_
     
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
@@ -299,6 +311,8 @@ if __name__ == "__main__":
     ### adaptive FIGS concept editing ###
     
     figs_interactions = extract_interactions(figs_student)
+    
+    r['depth'] = max([max([len(i[0]) for i in t]) for t in figs_interactions])
 
     X_train_d_edit = X_train_d.copy()
     X_train_t_edit = X_train_t.copy()

@@ -47,19 +47,23 @@ params_coupled_dict.update({('teacher_path',
                              'max_rules',
                              'max_trees',
                              'max_depth',
+                             'min_impurity_decrease',
                              'gpu'):
-                            [('cub/outputs/best_Joint0.01_model_1.pth', train_path, test_path, 125, 25, 4, 0)
+                            [(teacher_path, train_path, test_path, 125, 25, 4, mid, 0)
+                             for teacher_path in [f'cub/outputs/best_Joint0.01_model_{s}.pth' for s in range(1, 4)]
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
-                            ]+
-                           [('cub/outputs/best_Joint0.01_model_2.pth', train_path, test_path, 125, 25, 4, 1)
-                             for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
-                             for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
-                            ]+
-                           [('cub/outputs/best_Joint0.01_model_3.pth', train_path, test_path, 125, 25, 4, 2)
-                             for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
-                             for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
+                             for mid in [0.05, 0.1]
                             ]})
+                           #  ]+
+                           # [('cub/outputs/best_Joint0.01_model_2.pth', train_path, test_path, 125, 25, 4, 1)
+                           #   for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
+                           #   for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
+                           #  ]+
+                           # [('cub/outputs/best_Joint0.01_model_3.pth', train_path, test_path, 125, 25, 4, 2)
+                           #   for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
+                           #   for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
+                           #  ]})
 
 args_list = submit_utils.get_args_list(
     params_shared_dict=params_shared_dict,

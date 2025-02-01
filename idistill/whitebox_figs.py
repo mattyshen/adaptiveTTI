@@ -858,8 +858,8 @@ class FIGSCV:
     def predict_proba(self, X):
         return self.figs.predict_proba(X)
 
-    def predict(self, X):
-        return self.figs.predict(X)
+    def predict(self, X, by_tree = False):
+        return self.figs.predict(X, by_tree = by_tree)
 
     @property
     def max_rules(self):
