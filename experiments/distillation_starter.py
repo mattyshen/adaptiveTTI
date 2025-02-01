@@ -218,15 +218,15 @@ def add_main_args(parser):
         default="FIGSRegressor", 
         help="student name"
     )
-    parser.add_argument(
-        "--max_rules", type=int, default=125, help="max rules of FIGS model"
-    )
-    parser.add_argument(
-        "--max_trees", type=int, default=25, help="max trees of FIGS model"
-    )
-    parser.add_argument(
-        "--max_depth", type=int, default=4, help="max depth of tree based models"
-    )
+    # parser.add_argument(
+    #     "--max_rules", type=int, default=125, help="max rules of FIGS model"
+    # )
+    # parser.add_argument(
+    #     "--max_trees", type=int, default=25, help="max trees of FIGS model"
+    # )
+    # parser.add_argument(
+    #     "--max_depth", type=int, default=4, help="max depth of tree based models"
+    # )
     parser.add_argument(
         "--metric", type=str, default="accuracy", help="metric to log distillation and prediction performance"
     )

@@ -44,19 +44,16 @@ params_coupled_dict = {}
 params_coupled_dict.update({('teacher_path',
                              'train_path',
                              'test_path',
-                             'max_rules',
-                             'max_trees',
-                             'max_depth',
                              'gpu'):
-                            [('cub_sigmoid/outputs/best_model_large_1.pth', train_path, test_path, 125, 25, 4, 0)
+                            [('cub_sigmoid/outputs/best_model_large_1.pth', train_path, test_path, 0)
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
                             ]+
-                           [('cub_sigmoid/outputs/best_model_med_1.pth', train_path, test_path, 125, 25, 4, 1)
+                           [('cub_sigmoid/outputs/best_model_med_1.pth', train_path, test_path, 1)
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
                             ]+
-                           [('cub_sigmoid/outputs/best_model_small_1.pth', train_path, test_path, 125, 25, 4, 2)
+                           [('cub_sigmoid/outputs/best_model_small_1.pth', train_path, test_path, 2)
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
                             ]})

@@ -44,16 +44,11 @@ params_coupled_dict = {}
 params_coupled_dict.update({('teacher_path',
                              'train_path',
                              'test_path',
-                             'max_rules',
-                             'max_trees',
-                             'max_depth',
-                             'min_impurity_decrease',
                              'gpu'):
-                            [(teacher_path, train_path, test_path, 125, 25, 4, mid, 0)
-                             for teacher_path in [f'cub/outputs/best_Joint0.01_model_{s}.pth' for s in range(1, 4)]
+                            [(teacher_path, train_path, test_path, 1)
+                             for teacher_path in ['cub/outputs/best_Joint0.01_linear_model_1.pth', 'cub/outputs/best_Joint0.01_MLP1_model_1.pth', 'cub/outputs/best_Joint0.01_MLP2_model_1.pth']
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
-                             for mid in [0.05, 0.1]
                             ]})
                            #  ]+
                            # [('cub/outputs/best_Joint0.01_model_2.pth', train_path, test_path, 125, 25, 4, 1)

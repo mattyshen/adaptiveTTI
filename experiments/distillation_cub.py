@@ -302,18 +302,18 @@ def add_main_args(parser):
         default="FIGSRegressor", 
         help="student name"
     )
-    parser.add_argument(
-        "--max_rules", type=int, default=100, help="max rules of FIGS model"
-    )
-    parser.add_argument(
-        "--max_trees", type=int, default=20, help="max trees of FIGS model"
-    )
-    parser.add_argument(
-        "--max_depth", type=int, default=4, help="max depth of tree based models"
-    )
-    parser.add_argument(
-        "--min_impurity_decrease", type=float, default=0, help="minimum impurity decrease for tree based models"
-    )
+    # parser.add_argument(
+    #     "--max_rules", type=int, default=100, help="max rules of FIGS model"
+    # )
+    # parser.add_argument(
+    #     "--max_trees", type=int, default=20, help="max trees of FIGS model"
+    # )
+    # parser.add_argument(
+    #     "--max_depth", type=int, default=4, help="max depth of tree based models"
+    # )
+    # parser.add_argument(
+    #     "--min_impurity_decrease", type=float, default=0, help="minimum impurity decrease for tree based models"
+    # )
     parser.add_argument(
         "--metric", type=str, default="accuracy", help="metric to log distillation and prediction performance"
     )
@@ -381,10 +381,16 @@ if __name__ == "__main__":
     
     figs_student = idistill.model.get_model(args.task_type, args.student_name, args)
     
+    figs_student = FIGSRegressorCV(n_rules_list=[90, 125, 200], n_trees_list=[25, 30], depth_list=[4], min_impurity_decrease_list=[0]) #idistill.model.get_model(args.task_type, args.student_name, args)
+    
     r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
     
-    r['num_trees'] = len(figs_student.trees_)
-    r['num_rules'] = figs_student.complexity_
+    r['max_trees'] = figs_student.max_trees
+    r['max_rules'] = figs_student.max_rules
+    r['max_depth'] = figs_student.max_depth
+    
+    r['n_trees'] = len(figs_student.figs.trees_)
+    r['n_rules'] = figs_student.figs.complexity_
     
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)

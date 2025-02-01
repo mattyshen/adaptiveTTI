@@ -22,21 +22,13 @@ params_coupled_dict.update({('teacher_path',
                              'train_path',
                              'test_path',
                              'task_type',
-                             'student_name',
-                             'max_rules',
-                             'max_trees',
-                             'max_depth',
                              'metric',
                              'gpu'):
-                            [(teacher_path, train_path, test_path, task_type, distiller_name, max_rules, max_trees, max_depth, metric, gpu)
+                            [(teacher_path, train_path, test_path, task_type, metric, gpu)
                              for teacher_path in []
                              for train_path in []
                              for test_path in []
                              for task_type in ['regression']
-                             for student_name in ['FIGSRegressor']
-                             for max_rules in [100]
-                             for max_trees in [20]
-                             for max_depth in [4]
                              for metric in ['accuracy']
                              for gpu in [0]
                             ]})
