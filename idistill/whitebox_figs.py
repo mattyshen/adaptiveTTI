@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import List
+import itertools
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +18,23 @@ from scipy.special import softmax
 
 from imodels.tree.viz_utils import extract_sklearn_tree_from_figs
 #from imodels.util.arguments import check_fit_arguments
-from imodels.util.data_util import encode_categories
+#from imodels.util.data_util import encode_categories
+
+def encode_categories(X, features, encoder=None):
+    columns_to_keep = list(set(X.columns).difference(features))
+    X_encoded = X.loc[:, columns_to_keep]
+    X_cat = pd.DataFrame({f: X.loc[:, f] for f in features})
+    if encoder is None:
+        one_hot_encoder = OneHotEncoder(categories="auto", sparse_output=False)
+        X_one_hot = pd.DataFrame(one_hot_encoder.fit_transform(X_cat))
+    else:
+        one_hot_encoder = encoder
+        X_one_hot = pd.DataFrame(one_hot_encoder.transform(X_cat))
+    X_one_hot.columns = one_hot_encoder.get_feature_names_out(features)
+    X_encoded = pd.concat([X_encoded, X_one_hot], axis=1)
+    if encoder is not None:
+        return X_encoded
+    return X_encoded, one_hot_encoder
 
 import scipy.sparse
 from sklearn.utils.validation import check_X_y, check_array
@@ -48,6 +65,8 @@ def check_fit_arguments(model, X, y, feature_names, multi_output=False):
             model.classes_, y_temp = np.unique(y, return_inverse=True)  # deals with str inputs
 
             check_classification_targets(y_temp)
+            
+            print(y_temp)
         
             classification_type = type_of_target(y_temp)
         if issubclass(type(model), FIGS) and classification_type in ['multiclass', 'binary']:
@@ -805,30 +824,28 @@ class FIGSCV:
         self,
         figs,
         n_rules_list: List[int] = [6, 12, 24, 30, 50],
-        n_trees_list: List[int] = [5, 5, 5, 5, 5],
+        n_trees_list: List[int] = [5, 10, 15],
+        depth_list: List[int] = [3, 4],
+        min_impurity_decrease_list: List[float] = [0],
         cv: int = 3,
         scoring=None,
         *args,
         **kwargs,
     ):
-        if len(n_rules_list) != len(n_trees_list):
-            raise ValueError(
-                f"len(n_rules_list) = {len(n_rules_list)} != len(n_trees_list) = {len(n_trees_list)}"
-            )
 
         self._figs_class = figs
         self.n_rules_list = np.array(n_rules_list)
         self.n_trees_list = np.array(n_trees_list)
+        self.depth_list = np.array(depth_list)
+        self.min_impurity_decrease_list = np.array(min_impurity_decrease_list)
         self.cv = cv
         self.scoring = scoring
 
     def fit(self, X, y):
         self.scores_ = []
-        for _i, n_rules in enumerate(self.n_rules_list):
-            est = self._figs_class(
-                max_rules=n_rules, max_trees=self.n_trees_list[_i])
-            cv_scores = cross_val_score(
-                est, X, y, cv=self.cv, scoring=self.scoring)
+        for _i, (n_rules, n_trees, depth, min_impurity_decrease) in enumerate(itertools.product(*[self.n_rules_list, self.n_trees_list, self.depth_list, self.min_impurity_decrease_list])):
+            est = self._figs_class(max_rules=n_rules, max_trees=n_trees, max_depth=depth, min_impurity_decrease=min_impurity_decrease)
+            cv_scores = cross_val_score(est, X, y, cv=self.cv, scoring=self.scoring)
             mean_score = np.mean(cv_scores)
             if len(self.scores_) == 0:
                 self.figs = est
@@ -851,13 +868,23 @@ class FIGSCV:
     @property
     def max_trees(self):
         return self.figs.max_trees
+    
+    @property
+    def max_depth(self):
+        return self.figs.max_depth
+    
+    @property
+    def min_impurity_decrease(self):
+        return self.figs.min_impurity_decrease
 
 
 class FIGSRegressorCV(FIGSCV):
     def __init__(
         self,
         n_rules_list: List[int] = [6, 12, 24, 30, 50],
-        n_trees_list: List[int] = [5, 5, 5, 5, 5],
+        n_trees_list: List[int] = [5, 10, 15],
+        depth_list: List[int] = [3, 4],
+        min_impurity_decrease_list: List[float] = [0],
         cv: int = 3,
         scoring="r2",
         *args,
@@ -867,6 +894,8 @@ class FIGSRegressorCV(FIGSCV):
             figs=FIGSRegressor,
             n_rules_list=n_rules_list,
             n_trees_list=n_trees_list,
+            depth_list=depth_list,
+            min_impurity_decrease_list=min_impurity_decrease_list,
             cv=cv,
             scoring=scoring,
             *args,
@@ -878,7 +907,9 @@ class FIGSClassifierCV(FIGSCV):
     def __init__(
         self,
         n_rules_list: List[int] = [6, 12, 24, 30, 50],
-        n_trees_list: List[int] = [5, 5, 5, 5, 5],
+        n_trees_list: List[int] = [5, 10, 15],
+        depth_list: List[int] = [3, 4],
+        min_impurity_decrease_list: List[float] = [0],
         cv: int = 3,
         scoring="accuracy",
         *args,
@@ -888,41 +919,43 @@ class FIGSClassifierCV(FIGSCV):
             figs=FIGSClassifier,
             n_rules_list=n_rules_list,
             n_trees_list=n_trees_list,
+            depth_list=depth_list,
+            min_impurity_decrease_list=min_impurity_decrease_list,
             cv=cv,
             scoring=scoring,
             *args,
             **kwargs,
         )
         
-class FIGSHydraRegressor():
-    def __init__(
-        self,
-        max_rules: int = 12,
-        max_trees: int = None,
-        min_impurity_decrease: float = 0.0,
-        random_state=None,
-        max_features: str = None,
-        max_depth: int = None
-    ):
+# class FIGSHydraRegressor():
+#     def __init__(
+#         self,
+#         max_rules: int = 12,
+#         max_trees: int = None,
+#         min_impurity_decrease: float = 0.0,
+#         random_state=None,
+#         max_features: str = None,
+#         max_depth: int = None
+#     ):
         
-        self.max_rules = max_rules
-        self.max_trees = max_trees
-        self.min_impurity_decrease = min_impurity_decrease
-        self.random_state = random_state
-        self.max_features = max_features
-        self.max_depth = max_depth
-        self.estimators = []
+#         self.max_rules = max_rules
+#         self.max_trees = max_trees
+#         self.min_impurity_decrease = min_impurity_decrease
+#         self.random_state = random_state
+#         self.max_features = max_features
+#         self.max_depth = max_depth
+#         self.estimators = []
         
-    def fit(self, X, y):
-        if isinstance(y, pd.DataFrame):
-            y = y.to_numpy()
-        for i in range(y.shape[1]):
-            est = FIGSRegressor(max_rules=self.max_rules, max_trees=self.max_trees, max_depth=self.max_depth)
-            est.fit(X, y[:, i].reshape(-1, 1))
-            self.estimators.append(est)
+#     def fit(self, X, y):
+#         if isinstance(y, pd.DataFrame):
+#             y = y.to_numpy()
+#         for i in range(y.shape[1]):
+#             est = FIGSRegressor(max_rules=self.max_rules, max_trees=self.max_trees, max_depth=self.max_depth)
+#             est.fit(X, y[:, i].reshape(-1, 1))
+#             self.estimators.append(est)
     
-    def predict(self, X):
-        return np.array([est.predict(X) for est in self.estimators]).T.squeeze(0)
+#     def predict(self, X):
+#         return np.array([est.predict(X) for est in self.estimators]).T.squeeze(0)
 
         
         
