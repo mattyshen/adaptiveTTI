@@ -33,9 +33,7 @@ path_to_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(path_to_repo)
 
 import idistill.model
-import idistill.data
-from idistill.ftd import FTDistillRegressorCV
-from idistill.whitebox_figs import FIGSRegressor
+from idistill.whitebox_figs import FIGSRegressorCV
 
 def distill_model(student, X_train_teacher, y_train_teacher, r, feature_names = None):
     """Distill the teacher model using the student model"""
@@ -123,7 +121,7 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
                 #print(test_dir)
                 # loader = load_data([test_dir], True, False, batch_size, image_dir='images',
                 #                    n_class_attr=2, override_train=override_train)
-                loader = load_data([test_dir], True, False, batch_size, image_dir='images',
+                loader = load_data([test_dir], True, False, batch_size, image_dir='AdversarialData/CUB_fixed/test',
                                    n_class_attr=2)
             else:
                 train_dir = path
@@ -131,7 +129,7 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
                 #print(train_dir, val_dir)
                 # loader = load_data([train_dir, val_dir], True, False, batch_size, image_dir='images',
                 #                    n_class_attr=2, override_train=override_train)
-                loader = load_data([train_dir, val_dir], True, False, batch_size, image_dir='images',
+                loader = load_data([train_dir, val_dir], True, False, batch_size, image_dir='AdversarialData/CUB_fixed/train',
                                     n_class_attr=2)
                 
             torch.manual_seed(0)
@@ -149,7 +147,8 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
                 outputs = teacher(inputs_var)
                 class_outputs = outputs[0]
 
-                attr_outputs = [torch.nn.Sigmoid()(o) for o in outputs[1:]]
+                attr_outputs = outputs[1:] #[torch.nn.Sigmoid()(o) for o in outputs[1:]]
+                #attr_outputs_sigmoid = attr_outputs
 
                 attrs_hat.append(torch.stack(attr_outputs).squeeze(2).detach().cpu().numpy())
                 attrs_true.append(attr_labels.T)
@@ -187,8 +186,7 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
 def process_distillation_data(X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher):
     ### TODO: process (i.e. binarize, F1-max binarize) data for distillation ###
     
-    best_t = np.argmin([np.mean((X_train_teacher.values > t).astype(int) == X_train.values) for t in np.arange(0, 1, 0.01)])
-    thresh = np.arange(0, 1, 0.01)[best_t]
+    thresh = 0
     
     return (X_train_teacher > thresh).astype(int), (X_test_teacher > thresh).astype(int), y_train_teacher, y_test_teacher
 
@@ -223,8 +221,13 @@ def extract_interactions(student):
             current_features_r = current_features.copy()
             current_features_r.append('!c' + str(node.feature+1))
             traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
+            
+    try:
+        trees = student.trees_
+    except:
+        trees = student.figs.trees_
 
-    for tree in student.trees_:
+    for tree in trees:
         tree_interactions = []
         traverse_tree(tree, [], current_depth=0)
         interactions.append(tree_interactions)
@@ -312,7 +315,7 @@ def add_main_args(parser):
                         default="125,200",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-n_depth_list",  
+    parser.add_argument("-n_depth_list", 
                         help="delimited max_rules_list input for FIGS CV",
                         default="4",
                         type=lambda s: [int(item) for item in s.split(",")]

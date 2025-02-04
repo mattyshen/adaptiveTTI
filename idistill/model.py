@@ -3,26 +3,21 @@ import xgboost as xgb
 
 #from imodels import FIGSRegressor, FIGSClassifier
 
-from idistill.whitebox_figs import FIGSRegressor, FIGSClassifier
+from idistill.whitebox_figs import FIGSRegressorCV, FIGSClassifier
 from idistill.ftd import FTDistillRegressor, FTDistillRegressorCV, FTDistillClassifierCV
 
 from idistill.subset_predictors import L0L2RegressorCV
 
 def get_model(task_type, model_name, args):
     if task_type == 'regression':
-        if model_name == 'FIGSHydraRegressor':
-            #model = MultiOutputRegressor(FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth))
-            model = FIGSHydraRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth)
-        elif model_name == 'FIGSRegressor':
-            model = FIGSRegressor(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth, min_impurity_decrease=args.min_impurity_decrease)
+        if model_name == 'FIGSRegressorCV':
+            model = FIGSRegressorCV(n_rules_list=args.n_rules_list, 
+                                    n_trees_list=args.n_trees_list, 
+                                    n_depth_list=args.n_depth_list,
+                                    min_impurity_decrease_list=args.min_impurity_decrease_list,
+                                    scoring=args.metric)
         elif model_name == 'XGBoostRegressor':
             model = xgb.XGBRegressor(n_estimators=args.max_trees, max_depth=args.max_depth)
-        elif model_name == 'FTDHydraRegressor':
-            model = MultiOutputRegressor(FTDistillRegressor(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
-                 post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.max_depth))
-        elif model_name == 'FTDHydraRegressorCV':
-            model = MultiOutputRegressor(FTDistillRegressorCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
-                 post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.max_depth))
         elif model_name == 'FTDRegressorCV': 
             model = FTDistillRegressorCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
                  post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.max_depth, mo=args.mo)

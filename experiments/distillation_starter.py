@@ -34,11 +34,23 @@ sys.path.append(path_to_repo)
 
 import idistill.model
 import idistill.data
-from idistill.ftd import FTDistillRegressorCV
 from idistill.whitebox_figs import FIGSRegressorCV
 
 def distill_model(student, X_train_teacher, y_train_teacher, r, feature_names = None):
-    """Distill the teacher model using the student model"""
+    """Distill the teacher model using the student model
+    
+        Paramaters: 
+            student: student model
+            X_train_teacher (n_train, n_concepts): teacher model's predicted concept outputs (logits, probabilties, etc) for training data
+            y_train_teacher (n_train, n_outputs): teacher model's predicted task outputs (logits, probabilities, etc) for training data
+            r: default dictionary to log experiment metrics
+            feature_names: feature names of X_train_teacher
+            
+        Returns:
+            r: default dictionary to log experiment metrics
+            student: trained/distilled student model
+    
+    """
     
     fit_parameters = inspect.signature(student.fit).parameters.keys()
     if "feature_names" in fit_parameters and feature_names is not None:
@@ -49,7 +61,22 @@ def distill_model(student, X_train_teacher, y_train_teacher, r, feature_names = 
     return r, student
 
 def evaluate_student(student, X_train, X_test, y_train, y_test, metric, task, r):
-    """Evaluate student performance on each split"""
+    """Evaluate student performance on each split
+    
+        Paramaters: 
+            student: student model
+            X_train (n_train, n_concepts): teacher model's predicted concept outputs (logits, probabilties, etc) for training data
+            X_test (n_test, n_concepts): teacher model's predicted concept outputs (logits, probabilties, etc) for test data
+            y_train (n_train, 1): teacher model's predicted task outputs in evaluation form (i.e. if classification task, y_train_teacher must be class predictions, not class logits) OR true outputs for train data
+            y_test (n_test, 1): teacher model's predicted task outputs in evaluation form OR true outputs for test data
+            metric: metric to log 
+            task: task to log (i.e. if evaluating distillation performance, task would be `distillation`)
+            r: default dictionary to log experiment metrics
+            
+        Returns:
+            r: default dictionary to log experiment metrics
+            
+    """
     
     metrics = {
             "accuracy": accuracy_score,
@@ -70,6 +97,21 @@ def evaluate_student(student, X_train, X_test, y_train, y_test, metric, task, r)
     return r
 
 def evaluate_teacher(y_train_teacher, y_test_teacher, y_train, y_test, metric, task, r):
+    """Evaluate teacher performance on each split
+    
+        Paramaters: 
+            y_train_teacher (n_train, n_outputs): teacher model's predicted task outputs in evaluation form (i.e. if classification task, y_train_teacher must be class predictions, not class logits) for train data
+            y_test_teacher (n_test, n_outputs): teacher model's predicted task outputs in evaluation form for test data
+            y_train (n_train, 1): true outputs for train data
+            y_test (n_test, 1): true outputs for test data
+            metric: metric to log 
+            task: type of distillation task (likely regression)
+            r: default dictionary to log experiment metrics
+            
+        Returns:
+            r: default dictionary to log experiment metrics
+            
+    """
     metrics = {
             "accuracy": accuracy_score,
             "mse": mean_squared_error,
@@ -88,36 +130,121 @@ def evaluate_teacher(y_train_teacher, y_test_teacher, y_train, y_test, metric, t
     return r
 
 def predict_teacher(teacher, X, gpu=0):
+    """Make prediction from concepts to outputs with teacher model
+    
+        Paramaters: 
+            teacher: teacher model
+            X (n, n_concepts): concept data
+            gpu: gpu cuda device if applicable
+            
+        Returns:
+            y_pred: teacher model predictions for X 
+            
+    """
     ### TODO: handle teacher prediction outputs (X is intended to be concept design matrix)###
 
     return y_pred
 
 def load_teacher_model(teacher_path, gpu=0):
+    """Load in teacher model
+    
+        Paramaters: 
+            teacher_path: path where teacher model is stored
+            gpu: gpu cuda device if applicable
+            
+        Returns:
+            model: teacher model
+            
+    """
     ### TODO: load in teacher model using teacher_path ###
     
     return model
 
-def generate_tabular_distillation_data(model, train_path, test_path, gpu=0):
+def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
+    """Generate tabular concept and output data using teacher model for distillation and evaluation
+    
+        Paramaters: 
+            teacher: teacher model
+            train_path: path where training data is stored
+            test_path: path where test data is stored
+            gpu: gpu cuda device if applicable
+            
+        Returns:
+            X_train_teacher (n_train, n_concepts): predicted concepts by teacher model for training data
+            X_test_teacher (n_test, n_concepts): predicted concepts by teacher model for test data
+            X_train (n_train, n_concepts): true concept training data (likely 0, 1)
+            X_test (n_test, n_concepts): true concept test data (likely 0, 1)
+            y_train_teacher (n_train, n_outputs): teacher model's predicted task outputs for train data
+            y_test_teacher (n_test, n_outputs): teacher model's predicted task outputs for test data
+            y_train (n_train, 1): true outputs for train data
+            y_test (n_test, 1): true outputs for test data
+            
+    """
     ### TODO: generate teacher train and test data using model, train_path, and test_path ###
     
     return X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher, y_train, y_test
     
 def process_distillation_data(X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher):
+    """Process teacher data for distillation (likely binarizing the data)
+    
+        Paramaters: 
+            X_train_teacher (n_train, n_concepts): predicted concepts by teacher model for training data
+            X_test_teacher (n_test, n_concepts): predicted concepts by teacher model for test data
+            X_train (n_train, n_concepts): true concept training data (likely 0, 1)
+            X_test (n_test, n_concepts): true concept test data (likely 0, 1)
+            y_train_teacher (n_train, n_outputs): teacher model's predicted task outputs in evaluation form (i.e. if classification task, y_train_teacher must be class predictions, not class logits) for train data
+            y_test_teacher (n_test, n_outputs): teacher model's predicted task outputs in evaluation form for test data
+            
+        Returns:
+            X_train_teacher (n_train, n_concepts): processed predicted concepts by teacher model for distillation/student train data (likely 0, 1)
+            X_test_teacher (n_test, n_concepts): processed predicted concepts by teacher model for student test data (likely 0, 1)
+            y_train_teacher (n_train, n_outputs): teacher model's predicted task outputs for train data
+            y_test_teacher (n_test, n_outputs): teacher model's predicted task outputs for test data
+            
+    """
     ### TODO: process (i.e. binarize) data for distillation ###
     
     return X_train_teacher, X_test_teacher, y_train_teacher, y_test_teacher
 
 def process_student_eval(y_student):
+    """Process student data outputs for evaluation (i.e. if we're using a regressor for distilling a classification model, need to argmax for evaluation)
+    
+        Paramaters: 
+            y_student (n, n_outputs): student model predictions
+            
+        Returns:
+            y_pred (n, ...): student model predictions in evaluation form (if regression, then perhaps y_pred = y_student)
+            
+    """
     ### TODO: handle student prediction outputs to match metrics ###
 
     return y_pred
 
 def process_teacher_eval(y_teacher):
+    """Process teacher data outputs for evaluation (i.e. if process teacher logits into classes)
+    
+        Paramaters: 
+            y_student (n, n_outputs): teacher model predictions
+            
+        Returns:
+            y_pred (n, ...): teacher model predictions in evaluation form (if regression, then perhaps y_pred = y_teacher)
+            
+    """
     ### TODO: process teacher model predictions for evaluations (sometimes we distill a teacher model using a regressor, but want to evaluate class prediction accuracy) ###
     
     return y_teacher_eval
 
-def extract_interactions(model):
+def extract_interactions(student):
+    """Extract all interactions in FIGS student model
+    
+        Paramaters: 
+            student: student model
+            
+        Returns:
+            interactions: list of lists that contain FIGS student interactions and absolute variance of predictions of leaf node for adaptive ttv/i
+            
+    """
+    #TODO: exit what is appended, based on what the concepts are labeled as. As an example, below is 'c1' for concept 1 and '!c1' for not concept 1
 
     interactions = []
 
@@ -136,9 +263,9 @@ def extract_interactions(model):
             traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
     
     try:
-        trees = model.trees_
+        trees = student.trees_
     except:
-        trees = model.figs.trees_
+        trees = student.figs.trees_
         
     for tree in trees:
         tree_interactions = []
@@ -153,9 +280,20 @@ def get_argmax_max(vals, index):
     argmaxes = np.argsort(vals, axis=1)[:, -index]
     return maxes, argmaxes
 
-def extract_adaptive_intervention(model, X, interactions, number_of_top_paths, tol = 0.0001):
+def extract_adaptive_intervention(student, X, interactions, number_of_top_paths, tol = 0.0001):
+    """Extract adaptive concepts to validate/intervene on using FIGS student interactions
     
-    test_pred_intervention = model.predict(X, by_tree = True)
+        Paramaters: 
+            student: student model
+            X: data to adaptively validate/intervene on
+            number_of_top_paths: number of interactions to consider
+            tol: hyperparameter for locating interaction path
+            
+        Returns:
+            concepts_to_edit: list of lists that contain concepts to edit (outer list is of length X.shape[0])
+            
+    """
+    test_pred_intervention = student.predict(X, by_tree = True)
 
     concepts_to_edit = [[] for _ in range(X.shape[0])]
     variances = np.var(np.abs(test_pred_intervention), axis = 1)
@@ -214,19 +352,39 @@ def add_main_args(parser):
     parser.add_argument(
         "--student_name", 
         type=str,
-        choices=["FIGSRegressor", "FIGSClassifier", "XGBRegressor", "XGBClassifier"],
-        default="FIGSRegressor", 
+        choices=["FIGSRegressorCV", "XGBRegressor"],
+        default="FIGSRegressorCV", 
         help="student name"
     )
-    # parser.add_argument(
-    #     "--max_rules", type=int, default=125, help="max rules of FIGS model"
-    # )
-    # parser.add_argument(
-    #     "--max_trees", type=int, default=25, help="max trees of FIGS model"
-    # )
-    # parser.add_argument(
-    #     "--max_depth", type=int, default=4, help="max depth of tree based models"
-    # )
+    parser.add_argument("-n_trees_list", 
+                        help="delimited max_trees_list input for FIGS CV",
+                        default="30,40",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument("-n_rules_list", 
+                        help="delimited max_rules_list input for FIGS CV", 
+                        default="125,200",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument("-n_depth_list", 
+                        help="delimited max_rules_list input for FIGS CV",
+                        default="4",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument("-min_impurity_decrease_list",  
+                        help="delimited min_impurity_decrease_list input for FIGS CV",
+                        default="0",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument(
+        "--max_rules", type=int, default=125, help="max rules of FIGS model"
+    )
+    parser.add_argument(
+        "--max_trees", type=int, default=25, help="max trees of FIGS & XGB model"
+    )
+    parser.add_argument(
+        "--max_depth", type=int, default=4, help="max depth of tree based models"
+    )
     parser.add_argument(
         "--metric", type=str, default="accuracy", help="metric to log distillation and prediction performance"
     )
@@ -292,7 +450,7 @@ if __name__ == "__main__":
     y_train_t_eval = process_teacher_eval(y_train_t)
     y_test_t_eval = process_teacher_eval(y_test_t)
     
-    figs_student = FIGSRegressorCV(n_rules_list=[90, 125, 200], n_trees_list=[25, 30], depth_list=[4], min_impurity_decrease_list=[0]) #idistill.model.get_model(args.task_type, args.student_name, args)
+    figs_student = idistill.model.get_model(args.task_type, args.student_name, args)
     
     r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
     
@@ -369,6 +527,42 @@ if __name__ == "__main__":
     r = evaluate_student(figs_student, X_train_d_r_edit, X_test_d_r_edit, y_train, y_test, args.metric, "prediction_rand_interv", r)
 
     r = evaluate_teacher(y_train_t_eval_r_interv, y_test_t_eval_r_interv, y_train, y_test, args.metric, "prediction_rand_interv", r)
+    
+    ### linear CBM concept editing ###
+    
+    if 'linear' in args.teacher_path:
+        #TODO: access linear weight from concept-to-prediction portion of the CBM model
+        #example: CBM
+        train_l_edit = np.einsum('nc, yc -> nyc', X_train_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
+        test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
+        
+        cti_l_train_arr = np.argsort(np.max(train_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_train = [row for row in cti_l_train_arr]
+
+        cti_l_test_arr = np.argsort(np.max(test_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_test = [row for row in cti_l_test_arr]
+
+        X_train_d_l_edit = X_train_d.copy()
+        X_train_t_l_edit = X_train_t.copy()
+
+        for i in range(len(cti_l_train)):
+            X_train_d_l_edit.iloc[i, cti_l_train[i]] = X_train.iloc[i, cti_l_train[i]]
+            X_train_t_l_edit.iloc[i, cti_l_train[i]] = train_q5[cti_l_train[i]]*(X_train.iloc[i, cti_l_train[i]] == 0) + train_q95[cti_l_train[i]]*(X_train.iloc[i, cti_l_train[i]] == 1)
+
+        X_test_d_l_edit = X_test_d.copy()
+        X_test_t_l_edit = X_test_t.copy()
+
+        for i in range(len(cti_l_test)):
+            X_test_d_l_edit.iloc[i, cti_l_test[i]] = X_test.iloc[i, cti_l_test[i]]
+            X_test_t_l_edit.iloc[i, cti_l_test[i]] = train_q5[cti_l_test[i]]*(X_test.iloc[i, cti_l_test[i]] == 0) + train_q95[cti_l_test[i]]*(X_test.iloc[i, cti_l_test[i]] == 1)
+
+        y_train_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_train_t_l_edit, args.gpu))
+        y_test_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_l_edit, args.gpu))
+
+        r = evaluate_student(figs_student, X_train_d_l_edit, X_test_d_l_edit, y_train_t_eval_l_interv, y_test_t_eval_l_interv, args.metric, "distillation_lin_interv", r)
+        r = evaluate_student(figs_student, X_train_d_l_edit, X_test_d_l_edit, y_train, y_test, args.metric, "prediction_lin_interv", r)
+
+        r = evaluate_teacher(y_train_t_eval_l_interv, y_test_t_eval_l_interv, y_train, y_test, args.metric, "prediction_lin_interv", r)
         
     # save results
     print(f'save_dir_unique: {save_dir_unique}')

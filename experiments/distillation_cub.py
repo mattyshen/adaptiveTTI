@@ -33,9 +33,7 @@ path_to_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(path_to_repo)
 
 import idistill.model
-import idistill.data
-from idistill.ftd import FTDistillRegressorCV
-from idistill.whitebox_figs import FIGSRegressor
+from idistill.whitebox_figs import FIGSRegressorCV
 
 def distill_model(student, X_train_teacher, y_train_teacher, r, feature_names = None):
     """Distill the teacher model using the student model"""
@@ -223,8 +221,13 @@ def extract_interactions(student):
             current_features_r = current_features.copy()
             current_features_r.append('!c' + str(node.feature+1))
             traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
+            
+    try:
+        trees = student.trees_
+    except:
+        trees = student.figs.trees_
 
-    for tree in student.trees_:
+    for tree in trees:
         tree_interactions = []
         traverse_tree(tree, [], current_depth=0)
         interactions.append(tree_interactions)
@@ -298,22 +301,39 @@ def add_main_args(parser):
     parser.add_argument(
         "--student_name", 
         type=str,
-        choices=["FIGSRegressor", "FIGSClassifier", "XGBRegressor", "XGBClassifier"],
-        default="FIGSRegressor", 
+        choices=["FIGSRegressorCV", "XGBRegressor"],
+        default="FIGSRegressorCV", 
         help="student name"
     )
-    # parser.add_argument(
-    #     "--max_rules", type=int, default=100, help="max rules of FIGS model"
-    # )
-    # parser.add_argument(
-    #     "--max_trees", type=int, default=20, help="max trees of FIGS model"
-    # )
-    # parser.add_argument(
-    #     "--max_depth", type=int, default=4, help="max depth of tree based models"
-    # )
-    # parser.add_argument(
-    #     "--min_impurity_decrease", type=float, default=0, help="minimum impurity decrease for tree based models"
-    # )
+    parser.add_argument("-n_trees_list", 
+                        help="delimited max_trees_list input for FIGS CV",
+                        default="30,40",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument("-n_rules_list",  
+                        help="delimited max_rules_list input for FIGS CV", 
+                        default="125,200",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument("-n_depth_list", 
+                        help="delimited max_rules_list input for FIGS CV",
+                        default="4",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument("-min_impurity_decrease_list",  
+                        help="delimited min_impurity_decrease_list input for FIGS CV",
+                        default="0",
+                        type=lambda s: [int(item) for item in s.split(",")]
+    )
+    parser.add_argument(
+        "--max_rules", type=int, default=125, help="max rules of FIGS model"
+    )
+    parser.add_argument(
+        "--max_trees", type=int, default=25, help="max trees of FIGS & XGB model"
+    )
+    parser.add_argument(
+        "--max_depth", type=int, default=4, help="max depth of tree based models"
+    )
     parser.add_argument(
         "--metric", type=str, default="accuracy", help="metric to log distillation and prediction performance"
     )
@@ -380,8 +400,6 @@ if __name__ == "__main__":
     y_test_t_eval = process_teacher_eval(y_test_t)
     
     figs_student = idistill.model.get_model(args.task_type, args.student_name, args)
-    
-    figs_student = FIGSRegressorCV(n_rules_list=[90, 125, 200], n_trees_list=[25, 30], depth_list=[4], min_impurity_decrease_list=[0]) #idistill.model.get_model(args.task_type, args.student_name, args)
     
     r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
     
@@ -458,6 +476,42 @@ if __name__ == "__main__":
     r = evaluate_student(figs_student, X_train_d_r_edit, X_test_d_r_edit, y_train, y_test, args.metric, "prediction_rand_interv", r)
 
     r = evaluate_teacher(y_train_t_eval_r_interv, y_test_t_eval_r_interv, y_train, y_test, args.metric, "prediction_rand_interv", r)
+    
+    ### linear CBM concept editing ###
+    
+    if 'linear' in args.teacher_path:
+        #TODO: access linear weight from concept-to-prediction portion of the CBM model
+        #example: CBM
+        train_l_edit = np.einsum('nc, yc -> nyc', X_train_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
+        test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
+        
+        cti_l_train_arr = np.argsort(np.max(train_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_train = [row for row in cti_l_train_arr]
+
+        cti_l_test_arr = np.argsort(np.max(test_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_test = [row for row in cti_l_test_arr]
+
+        X_train_d_l_edit = X_train_d.copy()
+        X_train_t_l_edit = X_train_t.copy()
+
+        for i in range(len(cti_l_train)):
+            X_train_d_l_edit.iloc[i, cti_l_train[i]] = X_train.iloc[i, cti_l_train[i]]
+            X_train_t_l_edit.iloc[i, cti_l_train[i]] = train_q5[cti_l_train[i]]*(X_train.iloc[i, cti_l_train[i]] == 0) + train_q95[cti_l_train[i]]*(X_train.iloc[i, cti_l_train[i]] == 1)
+
+        X_test_d_l_edit = X_test_d.copy()
+        X_test_t_l_edit = X_test_t.copy()
+
+        for i in range(len(cti_l_test)):
+            X_test_d_l_edit.iloc[i, cti_l_test[i]] = X_test.iloc[i, cti_l_test[i]]
+            X_test_t_l_edit.iloc[i, cti_l_test[i]] = train_q5[cti_l_test[i]]*(X_test.iloc[i, cti_l_test[i]] == 0) + train_q95[cti_l_test[i]]*(X_test.iloc[i, cti_l_test[i]] == 1)
+
+        y_train_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_train_t_l_edit, args.gpu))
+        y_test_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_l_edit, args.gpu))
+
+        r = evaluate_student(figs_student, X_train_d_l_edit, X_test_d_l_edit, y_train_t_eval_l_interv, y_test_t_eval_l_interv, args.metric, "distillation_lin_interv", r)
+        r = evaluate_student(figs_student, X_train_d_l_edit, X_test_d_l_edit, y_train, y_test, args.metric, "prediction_lin_interv", r)
+
+        r = evaluate_teacher(y_train_t_eval_l_interv, y_test_t_eval_l_interv, y_train, y_test, args.metric, "prediction_lin_interv", r)
         
     # save results
     print(f'save_dir_unique: {save_dir_unique}')
