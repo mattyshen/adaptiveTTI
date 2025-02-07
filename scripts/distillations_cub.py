@@ -23,6 +23,7 @@ params_coupled_dict.update({('teacher_path',
                              'test_path',
                              'student_name',
                              'gpu'):
+                            [('cub/outputs/best_Joint0.01_Transformer1_e500_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 2)]+ 
                             [('cub/outputs/best_Joint0.01_Linear_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 0)]+ 
                             [('cub/outputs/best_Joint0.01_MLP1_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 1)] + 
                             [('cub/outputs/best_Joint0.01_MLP2_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 2)]})
