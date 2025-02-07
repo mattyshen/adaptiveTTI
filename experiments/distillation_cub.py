@@ -305,22 +305,22 @@ def add_main_args(parser):
         default="FIGSRegressorCV", 
         help="student name"
     )
-    parser.add_argument("-n_trees_list", 
+    parser.add_argument("--n_trees_list", 
                         help="delimited max_trees_list input for FIGS CV",
                         default="30,40",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-n_rules_list",  
+    parser.add_argument("--n_rules_list", 
                         help="delimited max_rules_list input for FIGS CV", 
-                        default="125,200",
+                        default="125,150,200",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-n_depth_list", 
+    parser.add_argument("--n_depth_list", 
                         help="delimited max_rules_list input for FIGS CV",
                         default="4",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-min_impurity_decrease_list",  
+    parser.add_argument("--min_impurity_decrease_list", 
                         help="delimited min_impurity_decrease_list input for FIGS CV",
                         default="0",
                         type=lambda s: [int(item) for item in s.split(",")]
@@ -479,7 +479,7 @@ if __name__ == "__main__":
     
     ### linear CBM concept editing ###
     
-    if 'linear' in args.teacher_path:
+    if 'Linear' in args.teacher_path or 'linear' in args.teacher_path:
         #TODO: access linear weight from concept-to-prediction portion of the CBM model
         #example: CBM
         train_l_edit = np.einsum('nc, yc -> nyc', X_train_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())

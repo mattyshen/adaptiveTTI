@@ -15,7 +15,11 @@ def get_model(task_type, model_name, args):
                                     n_trees_list=args.n_trees_list, 
                                     n_depth_list=args.n_depth_list,
                                     min_impurity_decrease_list=args.min_impurity_decrease_list,
-                                    scoring=args.metric)
+                                    scoring=args.metric if args.metric == 'mse' else 'r2')
+        elif model_name == 'FIGSRegressor':
+            model = FIGSRegressor(max_rules=args.max_rules, 
+                                    max_trees=args.max_trees, 
+                                    max_depth=args.max_depth)
         elif model_name == 'XGBoostRegressor':
             model = xgb.XGBRegressor(n_estimators=args.max_trees, max_depth=args.max_depth)
         elif model_name == 'FTDRegressorCV': 

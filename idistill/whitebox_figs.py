@@ -638,6 +638,12 @@ class FIGS(BaseEstimator):
             s += "("
             s += "max_rules="
             s += repr(self.max_rules)
+            s += ", "
+            s += "max_trees="
+            s += repr(self.max_trees)
+            s += ", "
+            s += "max_depth="
+            s += repr(self.max_depth)
             s += ")"
             return s
         else:

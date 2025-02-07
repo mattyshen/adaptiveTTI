@@ -356,22 +356,22 @@ def add_main_args(parser):
         default="FIGSRegressorCV", 
         help="student name"
     )
-    parser.add_argument("-n_trees_list", 
+    parser.add_argument("--n_trees_list", 
                         help="delimited max_trees_list input for FIGS CV",
                         default="30,40",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-n_rules_list", 
+    parser.add_argument("--n_rules_list", 
                         help="delimited max_rules_list input for FIGS CV", 
                         default="125,200",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-n_depth_list", 
+    parser.add_argument("--n_depth_list", 
                         help="delimited max_rules_list input for FIGS CV",
                         default="4",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-min_impurity_decrease_list",  
+    parser.add_argument("--min_impurity_decrease_list",  
                         help="delimited min_impurity_decrease_list input for FIGS CV",
                         default="0",
                         type=lambda s: [int(item) for item in s.split(",")]

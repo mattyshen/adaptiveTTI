@@ -18,42 +18,12 @@ params_shared_dict = {
 
 params_coupled_dict = {}
 
-# params_coupled_dict.update({('teacher_path',
-#                              'train_path',
-#                              'test_path',
-#                              'task_type',
-#                              'distiller_name',
-#                              'max_rules',
-#                              'max_trees',
-#                              'max_depth',
-#                              'metric'):
-#                             [(teacher_path, train_path, test_path, task_type, distiller_name, max_rules, max_trees, max_depth, metric)
-#                              for teacher_path in 
-#                 [f'/home/mattyshen/iCBM/CUB/best_models/Joint0.01SigmoidModel__Seed{s}/outputs/best_model_{s}.pth' for s in range(1, 4)]
-#                              for train_path in ['/home/mattyshen/iCBM/CUB/CUB_processed/class_attr_data_10/train.pkl']
-#                              for test_path in ['/home/mattyshen/iCBM/CUB/CUB_processed/class_attr_data_10/test.pkl']
-#                              for task_type in ['regression']
-#                              for distiller_name in ['FIGSRegressor']
-#                              for max_rules in [100]
-#                              for max_trees in [20]
-#                              for max_depth in [4]
-#                              for metric in ['accuracy']
-#                             ]})
-
-#no-sigmoid model
 params_coupled_dict.update({('teacher_path',
                              'train_path',
                              'test_path',
                              'gpu'):
-                            [('cub_sigmoid/outputs/best_model_large_1.pth', train_path, test_path, 0)
-                             for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
-                             for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
-                            ]+
-                           [('cub_sigmoid/outputs/best_model_med_1.pth', train_path, test_path, 1)
-                             for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
-                             for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
-                            ]+
-                           [('cub_sigmoid/outputs/best_model_small_1.pth', train_path, test_path, 2)
+                            [(teacher_path, train_path, test_path, 0)
+                             for teacher_path in ['cub_sigmoid/outputs/best_Joint0.01_Linear_model_1.pth', 'cub_sigmoid/outputs/best_Joint0.01_MLP1_model_1.pth', 'cub_sigmoid/outputs/best_Joint0.01_MLP2_model_1.pth']
                              for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
                              for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
                             ]})

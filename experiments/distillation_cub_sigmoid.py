@@ -187,7 +187,7 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
 def process_distillation_data(X_train_teacher, X_test_teacher, X_train, X_test, y_train_teacher, y_test_teacher):
     ### TODO: process (i.e. binarize, F1-max binarize) data for distillation ###
     
-    best_t = np.argmin([np.mean((X_train_teacher.values > t).astype(int) == X_train.values) for t in np.arange(0, 1, 0.01)])
+    best_t = np.argmax([np.mean((X_train_teacher.values > t).astype(int) == X_train.values) for t in np.arange(0, 1, 0.01)])
     thresh = np.arange(0, 1, 0.01)[best_t]
     
     return (X_train_teacher > thresh).astype(int), (X_test_teacher > thresh).astype(int), y_train_teacher, y_test_teacher
@@ -223,8 +223,13 @@ def extract_interactions(student):
             current_features_r = current_features.copy()
             current_features_r.append('!c' + str(node.feature+1))
             traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
+            
+    try:
+        trees = student.trees_
+    except:
+        trees = student.figs.trees_
 
-    for tree in student.trees_:
+    for tree in trees:
         tree_interactions = []
         traverse_tree(tree, [], current_depth=0)
         interactions.append(tree_interactions)
@@ -302,22 +307,22 @@ def add_main_args(parser):
         default="FIGSRegressorCV", 
         help="student name"
     )
-    parser.add_argument("-n_trees_list", 
+    parser.add_argument("--n_trees_list", 
                         help="delimited max_trees_list input for FIGS CV",
                         default="30,40",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-n_rules_list", 
+    parser.add_argument("--n_rules_list", 
                         help="delimited max_rules_list input for FIGS CV", 
-                        default="125,200",
+                        default="125,150,200",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-n_depth_list",  
+    parser.add_argument("--n_depth_list", 
                         help="delimited max_rules_list input for FIGS CV",
                         default="4",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("-min_impurity_decrease_list", 
+    parser.add_argument("--min_impurity_decrease_list", 
                         help="delimited min_impurity_decrease_list input for FIGS CV",
                         default="0",
                         type=lambda s: [int(item) for item in s.split(",")]
@@ -476,7 +481,7 @@ if __name__ == "__main__":
     
     ### linear CBM concept editing ###
     
-    if 'linear' in args.teacher_path:
+    if 'Linear' in args.teacher_path or 'linear' in args.teacher_path:
         #TODO: access linear weight from concept-to-prediction portion of the CBM model
         #example: CBM
         train_l_edit = np.einsum('nc, yc -> nyc', X_train_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
