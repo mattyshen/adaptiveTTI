@@ -301,7 +301,7 @@ def add_main_args(parser):
     parser.add_argument(
         "--student_name", 
         type=str,
-        choices=["FIGSRegressorCV", "XGBRegressor"],
+        choices=["FIGSRegressorCV", "FIGSRegressor", "XGBRegressor"],
         default="FIGSRegressorCV", 
         help="student name"
     )
@@ -326,10 +326,10 @@ def add_main_args(parser):
                         type=lambda s: [int(item) for item in s.split(",")]
     )
     parser.add_argument(
-        "--max_rules", type=int, default=125, help="max rules of FIGS model"
+        "--max_rules", type=int, default=200, help="max rules of FIGS model"
     )
     parser.add_argument(
-        "--max_trees", type=int, default=25, help="max trees of FIGS & XGB model"
+        "--max_trees", type=int, default=30, help="max trees of FIGS & XGB model"
     )
     parser.add_argument(
         "--max_depth", type=int, default=4, help="max depth of tree based models"
@@ -406,10 +406,12 @@ if __name__ == "__main__":
     r['max_trees'] = figs_student.max_trees
     r['max_rules'] = figs_student.max_rules
     r['max_depth'] = figs_student.max_depth
-    
-    r['n_trees'] = len(figs_student.figs.trees_)
-    r['n_rules'] = figs_student.figs.complexity_
-    
+    try:
+        r['n_trees'] = len(figs_student.figs.trees_)
+        r['n_rules'] = figs_student.figs.complexity_
+    except:
+        r['n_trees'] = len(figs_student.trees_)
+        r['n_rules'] = figs_student.complexity_
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
     
@@ -479,16 +481,16 @@ if __name__ == "__main__":
     
     ### linear CBM concept editing ###
     
-    if 'linear' in args.teacher_path:
+    if 'linear' in args.teacher_path or 'Linear' in args.teacher_path:
         #TODO: access linear weight from concept-to-prediction portion of the CBM model
         #example: CBM
         train_l_edit = np.einsum('nc, yc -> nyc', X_train_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
         test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
         
-        cti_l_train_arr = np.argsort(np.max(train_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_train_arr = np.argsort(np.var(np.abs(train_l_edit), axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
         cti_l_train = [row for row in cti_l_train_arr]
 
-        cti_l_test_arr = np.argsort(np.max(test_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_test_arr = np.argsort(np.var(np.abs(test_l_edit), axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
         cti_l_test = [row for row in cti_l_test_arr]
 
         X_train_d_l_edit = X_train_d.copy()

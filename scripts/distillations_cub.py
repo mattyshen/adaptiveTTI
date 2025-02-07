@@ -21,12 +21,11 @@ params_coupled_dict = {}
 params_coupled_dict.update({('teacher_path',
                              'train_path',
                              'test_path',
+                             'student_name',
                              'gpu'):
-                            [(teacher_path, train_path, test_path, 0)
-                             for teacher_path in ['cub/outputs/best_Joint0.01_Linear_model_1.pth', 'cub/outputs/best_Joint0.01_MLP1_model_1.pth', 'cub/outputs/best_Joint0.01_MLP2_model_1.pth']
-                             for train_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl']
-                             for test_path in ['/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl']
-                            ]})
+                            [('cub/outputs/best_Joint0.01_Linear_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 0)]+ 
+                            [('cub/outputs/best_Joint0.01_MLP1_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 1)] + 
+                            [('cub/outputs/best_Joint0.01_MLP2_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 2)]})
 
 args_list = submit_utils.get_args_list(
     params_shared_dict=params_shared_dict,

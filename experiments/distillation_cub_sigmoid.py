@@ -487,10 +487,10 @@ if __name__ == "__main__":
         train_l_edit = np.einsum('nc, yc -> nyc', X_train_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
         test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
         
-        cti_l_train_arr = np.argsort(np.max(train_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_train_arr = np.argsort(np.var(np.abs(train_l_edit), axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
         cti_l_train = [row for row in cti_l_train_arr]
 
-        cti_l_test_arr = np.argsort(np.max(test_l_edit, axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
+        cti_l_test_arr = np.argsort(np.var(np.abs(test_l_edit), axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
         cti_l_test = [row for row in cti_l_test_arr]
 
         X_train_d_l_edit = X_train_d.copy()
