@@ -18,16 +18,18 @@ params_shared_dict = {
 
 params_coupled_dict = {}
 
-#no-sigmoid model
 params_coupled_dict.update({('teacher_path',
                              'train_path',
                              'test_path',
                              'student_name',
+                             'max_trees',
+                             'max_rules',
                              'gpu'):
-                             [('travelingbirds/outputs/best_Joint0.01_Transformer1_e500_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 1)] +
-                            [('travelingbirds/outputs/best_Joint0.01_Linear_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 0)] + 
-                            [('travelingbirds/outputs/best_Joint0.01_MLP1_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 1)] + 
-                            [('travelingbirds/outputs/best_Joint0.01_MLP2_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 2)]})
+                             [(path, '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 30, 200, 2)
+                             for path in ['travelingbirds/outputs/best_Joint0.01_Transformer1_e500_model_1.pth',
+                                         'travelingbirds/outputs/best_Joint0.01_MLP1_model_1.pth',
+                                         'travelingbirds/outputs/best_Joint0.01_MLP2_model_1.pth',
+                                         'travelingbirds/outputs/best_Joint0.01_Linear_model_1.pth']]})
 
 args_list = submit_utils.get_args_list(
     params_shared_dict=params_shared_dict,

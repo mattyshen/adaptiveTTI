@@ -85,6 +85,39 @@ def evaluate_teacher(y_train_teacher, y_test_teacher, y_train, y_test, metric, t
     
     return r
 
+def evaluate_test_student(student, X_test, y_test, metric, task, r):
+    """Evaluate student performance on each split"""
+    
+    metrics = {
+            "accuracy": accuracy_score,
+            "mse": mean_squared_error,
+            "r2": r2_score,
+            "f1": f1_score,
+        
+        }
+    
+    metric_fn = metrics[metric]
+    
+    y_pred_ = process_student_eval(student.predict(X_test))
+    r[f"student_{task}_test_{metric}"] = metric_fn(y_test, y_pred_)
+
+    return r
+
+def evaluate_test_teacher(y_test_teacher, y_test, metric, task, r):
+    metrics = {
+            "accuracy": accuracy_score,
+            "mse": mean_squared_error,
+            "r2": r2_score,
+            "f1": f1_score,
+        
+        }
+    
+    metric_fn = metrics[metric]
+    
+    r[f"teacher_{task}_test_{metric}"] = metric_fn(y_test_teacher, y_test)
+    
+    return r
+
 def predict_teacher(teacher, X, gpu=0):
     ### TODO: handle teacher prediction outputs (X is intended to be concept design matrix, output is intended to be logits)###
 
@@ -234,30 +267,57 @@ def extract_interactions(student):
         
     return interactions
 
-def get_argmax_max(vals, index):
-    
-    maxes = np.partition(vals, -2, axis=1)[:, -index]
-    argmaxes = np.argsort(vals, axis=1)[:, -index]
-    return maxes, argmaxes
+def split_list_by_sizes(list1, list2):
+    result = []
+    for row1, row2 in zip(list1, list2):
+        sizes = [len(sublist) for sublist in row1]
+        row_result = []
+        start = 0
+        for size in sizes:
+            end = start + size
+            row_result.append(list(row2[start:end]))
+            start = end
+        result.append(row_result)
+    return result
 
-def extract_adaptive_intervention(student, X, interactions, number_of_top_paths, tol = 0.0001):
+def find_closest_keys_vectorized(dictionary, targets):
+    keys = np.array(list(dictionary.keys()))
+    targets = np.array(targets)
+    diffs = np.abs(keys[:, None] - targets)
+    closest_key_indices = np.argmin(diffs, axis=0)
+    closest_keys = keys[closest_key_indices]
+
+    return closest_keys
+
+def extract_adaptive_intervention(student, X, interactions, number_of_top_paths=0):
     
+    figs_dict = {}
+    for i, tree in enumerate(interactions):
+        tree_dict = {}
+        for path, var in tree:
+            tree_dict[var] = path
+        figs_dict[i] = tree_dict
+
     test_pred_intervention = student.predict(X, by_tree = True)
 
     concepts_to_edit = [[] for _ in range(X.shape[0])]
     variances = np.var(np.abs(test_pred_intervention), axis = 1)
 
-    for idx in range(number_of_top_paths):
-        maxes, argmaxes = get_argmax_max(variances, idx+1)
-        for i, (tree_idx, var) in enumerate(zip(argmaxes, maxes)):
-            for paths in interactions[tree_idx]:
-                if abs(paths[1] - var) < tol:
-                    concept_indexes = [int(p[1:])-1 if p[0] != '!' else int(p[2:])-1 for p in paths[0]]
-                    concepts_to_edit[i].append(concept_indexes)
-                    
-    concepts_to_edit = [sum(element, []) for element in concepts_to_edit]
-    concepts_to_edit = [list(set(c)) for c in concepts_to_edit]
+    concepts = np.array([find_closest_keys_vectorized(figs_dict[i], variances[:, i]) for i in range(variances.shape[1])])
+    orderings_of_interventions = np.argsort(concepts.T, axis = 1)[:, ::-1]
+    variances_of_orderings_of_interventions = np.sort(concepts.T, axis = 1)[:, ::-1]
     
+    if number_of_top_paths == 0:
+        r = range(orderings_of_interventions.shape[1])
+    else:
+        r = range(number_of_top_paths)
+
+    for t in r:
+        for i, l in enumerate(orderings_of_interventions[:, t]):
+            new_list = []
+            for c in figs_dict[l][variances_of_orderings_of_interventions[i, t]]:
+                new_list.append(int(c[1:])-1 if c[0] != '!' else int(c[2:])-1)
+            concepts_to_edit[i].append(new_list)
     return concepts_to_edit
 
 
@@ -305,22 +365,22 @@ def add_main_args(parser):
         default="FIGSRegressorCV", 
         help="student name"
     )
-    parser.add_argument("--n_trees_list", 
+    parser.add_argument("-n_trees_list", 
                         help="delimited max_trees_list input for FIGS CV",
                         default="30,40",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("--n_rules_list", 
+    parser.add_argument("-n_rules_list", 
                         help="delimited max_rules_list input for FIGS CV", 
-                        default="200",
+                        default="125,200",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("--n_depth_list", 
+    parser.add_argument("-n_depth_list", 
                         help="delimited max_rules_list input for FIGS CV",
                         default="4",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("--min_impurity_decrease_list", 
+    parser.add_argument("-min_impurity_decrease_list", 
                         help="delimited min_impurity_decrease_list input for FIGS CV",
                         default="0",
                         type=lambda s: [int(item) for item in s.split(",")]
@@ -412,7 +472,7 @@ if __name__ == "__main__":
     except:
         r['n_trees'] = len(figs_student.trees_)
         r['n_rules'] = figs_student.complexity_
-    
+        
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
     r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
     
@@ -423,98 +483,64 @@ if __name__ == "__main__":
     figs_interactions = extract_interactions(figs_student)
     
     r['depth'] = max([max([len(i[0]) for i in t]) for t in figs_interactions])
-
-    X_train_d_edit = X_train_d.copy()
-    X_train_t_edit = X_train_t.copy()
-
+    
     train_q5 = np.quantile(X_train_t, 0.05, axis = 0)
     train_q95 = np.quantile(X_train_t, 0.95, axis = 0)
 
-    cti_train = extract_adaptive_intervention(figs_student, X_train_d, figs_interactions, args.num_interactions_intervention)
-
-    for i in range(len(cti_train)):
-        X_train_d_edit.iloc[i, cti_train[i]] = X_train.iloc[i, cti_train[i]]
-        X_train_t_edit.iloc[i, cti_train[i]] = train_q5[cti_train[i]]*(X_train.iloc[i, cti_train[i]] == 0) + train_q95[cti_train[i]]*(X_train.iloc[i, cti_train[i]] == 1)
-
-    cti_test = extract_adaptive_intervention(figs_student, X_test_d, figs_interactions, args.num_interactions_intervention)
-
-    X_test_d_edit = X_test_d.copy()
-    X_test_t_edit = X_test_t.copy()
-
-    for i in range(len(cti_test)):
-        X_test_d_edit.iloc[i, cti_test[i]] = X_test.iloc[i, cti_test[i]]
-        X_test_t_edit.iloc[i, cti_test[i]] = train_q5[cti_test[i]]*(X_test.iloc[i, cti_test[i]] == 0) + train_q95[cti_test[i]]*(X_test.iloc[i, cti_test[i]] == 1)
-
-    y_train_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_train_t_edit, args.gpu))
-    y_test_t_eval_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_edit, args.gpu))
-
-    r = evaluate_student(figs_student, X_train_d_edit, X_test_d_edit, y_train_t_eval_interv, y_test_t_eval_interv, args.metric, "distillation_adap_interv", r)
-    r = evaluate_student(figs_student, X_train_d_edit, X_test_d_edit, y_train, y_test, args.metric, "prediction_adap_interv", r)
-
-    r = evaluate_teacher(y_train_t_eval_interv, y_test_t_eval_interv, y_train, y_test, args.metric, "prediction_adap_interv", r)
-    
-    ### random FIGS concept editing ###
-    
-    cti_r_train = [np.random.choice(np.arange(0, 112), size=len(c), replace=False) for c in cti_train]
-    cti_r_test = [np.random.choice(np.arange(0, 112), size=len(c), replace=False) for c in cti_test]
-    
-    X_train_d_r_edit = X_train_d.copy()
-    X_train_t_r_edit = X_train_t.copy()
-
-    for i in range(len(cti_r_train)):
-        X_train_d_r_edit.iloc[i, cti_r_train[i]] = X_train.iloc[i, cti_r_train[i]]
-        X_train_t_r_edit.iloc[i, cti_r_train[i]] = train_q5[cti_r_train[i]]*(X_train.iloc[i, cti_r_train[i]] == 0) + train_q95[cti_r_train[i]]*(X_train.iloc[i, cti_r_train[i]] == 1)
-
+    X_test_d_a_edit = X_test_d.copy()
     X_test_d_r_edit = X_test_d.copy()
+
+    X_test_t_a_edit = X_test_t.copy()
     X_test_t_r_edit = X_test_t.copy()
 
-    for i in range(len(cti_r_test)):
-        X_test_d_r_edit.iloc[i, cti_r_test[i]] = X_test.iloc[i, cti_r_test[i]]
-        X_test_t_r_edit.iloc[i, cti_r_test[i]] = train_q5[cti_r_test[i]]*(X_test.iloc[i, cti_r_test[i]] == 0) + train_q95[cti_r_test[i]]*(X_test.iloc[i, cti_r_test[i]] == 1)
-
-    y_train_t_eval_r_interv = process_teacher_eval(predict_teacher(teacher, X_train_t_r_edit, args.gpu))
-    y_test_t_eval_r_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_r_edit, args.gpu))
-
-    r = evaluate_student(figs_student, X_train_d_r_edit, X_test_d_r_edit, y_train_t_eval_r_interv, y_test_t_eval_r_interv, args.metric, "distillation_rand_interv", r)
-    r = evaluate_student(figs_student, X_train_d_r_edit, X_test_d_r_edit, y_train, y_test, args.metric, "prediction_rand_interv", r)
-
-    r = evaluate_teacher(y_train_t_eval_r_interv, y_test_t_eval_r_interv, y_train, y_test, args.metric, "prediction_rand_interv", r)
     
-    ### linear CBM concept editing ###
+    cti_adap_test = extract_adaptive_intervention(figs_student, X_test_d, figs_interactions, args.num_interactions_intervention)
+
+    cti_rand_test = [np.random.choice(np.arange(X_test_d.shape[1]), X_test_d.shape[1], replace=False) for i in range(X_test_d.shape[0])]
+    cti_rand_test = split_list_by_sizes(cti_adap_test, cti_rand_test)
     
-    if 'Linear' in args.teacher_path or 'linear' in args.teacher_path:
-        #TODO: access linear weight from concept-to-prediction portion of the CBM model
-        #example: CBM
-        train_l_edit = np.einsum('nc, yc -> nyc', X_train_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
-        test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
-        
-        cti_l_train_arr = np.argsort(np.var(np.abs(train_l_edit), axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
-        cti_l_train = [row for row in cti_l_train_arr]
-
-        cti_l_test_arr = np.argsort(np.var(np.abs(test_l_edit), axis = 1), axis = 1)[:, (-1 * r['depth'] * args.num_interactions_intervention):]
-        cti_l_test = [row for row in cti_l_test_arr]
-
-        X_train_d_l_edit = X_train_d.copy()
-        X_train_t_l_edit = X_train_t.copy()
-
-        for i in range(len(cti_l_train)):
-            X_train_d_l_edit.iloc[i, cti_l_train[i]] = X_train.iloc[i, cti_l_train[i]]
-            X_train_t_l_edit.iloc[i, cti_l_train[i]] = train_q5[cti_l_train[i]]*(X_train.iloc[i, cti_l_train[i]] == 0) + train_q95[cti_l_train[i]]*(X_train.iloc[i, cti_l_train[i]] == 1)
-
+    
+    if 'linear' in args.teacher_path or 'Linear' in args.teacher_path:
         X_test_d_l_edit = X_test_d.copy()
         X_test_t_l_edit = X_test_t.copy()
+        
+        test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
 
-        for i in range(len(cti_l_test)):
-            X_test_d_l_edit.iloc[i, cti_l_test[i]] = X_test.iloc[i, cti_l_test[i]]
-            X_test_t_l_edit.iloc[i, cti_l_test[i]] = train_q5[cti_l_test[i]]*(X_test.iloc[i, cti_l_test[i]] == 0) + train_q95[cti_l_test[i]]*(X_test.iloc[i, cti_l_test[i]] == 1)
+        cti_l_test_arr = np.argsort(np.var(np.abs(test_l_edit), axis = 1), axis = 1)[:, ::-1]
+        cti_l_test = [row for row in cti_l_test_arr]
+        cti_l_test = split_list_by_sizes(cti_adap_test, cti_l_test)
+    
+    for i in range(args.num_interactions_intervention):
+        for n in range(X_test_d.shape[0]):
 
-        y_train_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_train_t_l_edit, args.gpu))
-        y_test_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_l_edit, args.gpu))
+            X_test_d_a_edit.iloc[n, cti_adap_test[n][i]] = X_test.iloc[n, cti_adap_test[n][i]]
+            X_test_d_r_edit.iloc[n, cti_rand_test[n][i]] = X_test.iloc[n, cti_rand_test[n][i]]
 
-        r = evaluate_student(figs_student, X_train_d_l_edit, X_test_d_l_edit, y_train_t_eval_l_interv, y_test_t_eval_l_interv, args.metric, "distillation_lin_interv", r)
-        r = evaluate_student(figs_student, X_train_d_l_edit, X_test_d_l_edit, y_train, y_test, args.metric, "prediction_lin_interv", r)
+            X_test_t_a_edit.iloc[n, cti_adap_test[n][i]] = train_q5[cti_adap_test[n][i]]*(X_test.iloc[n, cti_adap_test[n][i]] == 0) + train_q95[cti_adap_test[n][i]]*(X_test.iloc[n, cti_adap_test[n][i]])
+            X_test_t_r_edit.iloc[n, cti_rand_test[n][i]] = train_q5[cti_rand_test[n][i]]*(X_test.iloc[n, cti_rand_test[n][i]] == 0) + train_q95[cti_rand_test[n][i]]*(X_test.iloc[n, cti_rand_test[n][i]])
+            
+            if 'linear' in args.teacher_path or 'Linear' in args.teacher_path:
+                X_test_d_l_edit.iloc[n, cti_l_test[n][i]] = X_test.iloc[n, cti_l_test[n][i]]
+                X_test_t_l_edit.iloc[n, cti_l_test[n][i]] = train_q5[cti_l_test[n][i]]*(X_test.iloc[n, cti_l_test[n][i]] == 0) + train_q95[cti_l_test[n][i]]*(X_test.iloc[n, cti_l_test[n][i]])
 
-        r = evaluate_teacher(y_train_t_eval_l_interv, y_test_t_eval_l_interv, y_train, y_test, args.metric, "prediction_lin_interv", r)
+        y_test_t_eval_a_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_a_edit, args.gpu))
+        y_test_t_eval_r_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_r_edit, args.gpu))
+            
+        r = evaluate_test_student(figs_student, X_test_d_a_edit, y_test_t_eval_a_interv, args.metric, f"distill_adap_interv_iter{i}", r)
+        r = evaluate_test_student(figs_student, X_test_d_r_edit, y_test_t_eval_r_interv, args.metric, f"distill_rand_interv_iter{i}", r)
+        
+        r = evaluate_test_student(figs_student, X_test_d_a_edit, y_test, args.metric, f"pred_adap_interv_iter{i}", r)
+        r = evaluate_test_student(figs_student, X_test_d_r_edit, y_test, args.metric, f"pred_rand_interv_iter{i}", r)
+
+        r = evaluate_test_teacher(y_test_t_eval_a_interv, y_test, args.metric, f"pred_adap_interv_iter{i}", r)
+        r = evaluate_test_teacher(y_test_t_eval_r_interv, y_test, args.metric, f"pred_rand_interv_iter{i}", r)
+        
+        if 'linear' in args.teacher_path or 'Linear' in args.teacher_path:
+            y_test_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_l_edit, args.gpu))
+            
+            r = evaluate_test_student(figs_student, X_test_d_l_edit, y_test_t_eval_l_interv, args.metric, f"distill_lin_interv_iter{i}", r)
+            r = evaluate_test_student(figs_student, X_test_d_l_edit, y_test, args.metric, f"pred_lin_interv_iter{i}", r)
+            r = evaluate_test_teacher(y_test_t_eval_l_interv, y_test, args.metric, f"pred_lin_interv_iter{i}", r)
         
     # save results
     print(f'save_dir_unique: {save_dir_unique}')
