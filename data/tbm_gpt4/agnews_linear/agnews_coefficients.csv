@@ -1,0 +1,81 @@
+class,feature,coefficient,model
+0.0,Athletic Terminology,-0.5169159690506614,Logistic Regression
+1.0,Athletic Terminology,2.286442188742317,Logistic Regression
+2.0,Athletic Terminology,-1.18461045158019,Logistic Regression
+3.0,Athletic Terminology,-0.584915768111458,Logistic Regression
+0.0,Financial Terminology,-1.0541802178329682,Logistic Regression
+1.0,Financial Terminology,0.04468908261833109,Logistic Regression
+2.0,Financial Terminology,1.2646487852982111,Logistic Regression
+3.0,Financial Terminology,-0.2551576500835732,Logistic Regression
+0.0,Technological terminology,-0.7210367073202589,Logistic Regression
+1.0,Technological terminology,-0.22746450029022494,Logistic Regression
+2.0,Technological terminology,0.1888860850137092,Logistic Regression
+3.0,Technological terminology,0.7596151225967741,Logistic Regression
+0.0,Geopolitical References,0.3553292275687181,Logistic Regression
+1.0,Geopolitical References,-0.1482931602420508,Logistic Regression
+2.0,Geopolitical References,0.2618205557102188,Logistic Regression
+3.0,Geopolitical References,-0.46885662303688486,Logistic Regression
+0.0,World Events References,0.44622833924781324,Logistic Regression
+1.0,World Events References,-0.14428815440179887,Logistic Regression
+2.0,World Events References,-0.553717304922922,Logistic Regression
+3.0,World Events References,0.2517771200769064,Logistic Regression
+0.0,Scientific Concepts References,-0.5072363312133698,Logistic Regression
+1.0,Scientific Concepts References,0.0921690973315237,Logistic Regression
+2.0,Scientific Concepts References,0.24878207216673198,Logistic Regression
+3.0,Scientific Concepts References,0.1662851617151103,Logistic Regression
+0.0,Specific Scientific Phenomena Mention,0.045570900339562175,Logistic Regression
+1.0,Specific Scientific Phenomena Mention,-0.033696409510132426,Logistic Regression
+2.0,Specific Scientific Phenomena Mention,-0.6447445546392122,Logistic Regression
+3.0,Specific Scientific Phenomena Mention,0.6328700638097841,Logistic Regression
+0.0,Emerging Technology References,0.1676380042637256,Logistic Regression
+1.0,Emerging Technology References,-0.16627171991414322,Logistic Regression
+2.0,Emerging Technology References,0.3919846925961912,Logistic Regression
+3.0,Emerging Technology References,-0.3933509769457781,Logistic Regression
+0.0,Tech Company References,-0.4500439363605652,Logistic Regression
+1.0,Tech Company References,-0.10612808828659662,Logistic Regression
+2.0,Tech Company References,-0.452247415295338,Logistic Regression
+3.0,Tech Company References,1.0084194399425002,Logistic Regression
+0.0,Medical and Health References,0.23107131358031524,Logistic Regression
+1.0,Medical and Health References,-0.09833949796978836,Logistic Regression
+2.0,Medical and Health References,0.18019900810523976,Logistic Regression
+3.0,Medical and Health References,-0.3129308237157671,Logistic Regression
+0.0,Product/Service References,-0.3814531023099294,Logistic Regression
+1.0,Product/Service References,-0.45726119378469404,Logistic Regression
+2.0,Product/Service References,0.6478068837683556,Logistic Regression
+3.0,Product/Service References,0.19090741232626676,Logistic Regression
+0.0,Technological Innovation and Advancement Description,0.39036579760328494,Logistic Regression
+1.0,Technological Innovation and Advancement Description,-0.11267525601342207,Logistic Regression
+2.0,Technological Innovation and Advancement Description,-0.8987660732217335,Logistic Regression
+3.0,Technological Innovation and Advancement Description,0.6210755316318693,Logistic Regression
+0.0,Business Company References,-0.49080780070915064,Logistic Regression
+1.0,Business Company References,0.04303740352899224,Logistic Regression
+2.0,Business Company References,0.23905059658330405,Logistic Regression
+3.0,Business Company References,0.20871980059685613,Logistic Regression
+0.0,International Relations References,0.31285789440839806,Logistic Regression
+1.0,International Relations References,0.27808930564091305,Logistic Regression
+2.0,International Relations References,-0.11911429892657419,Logistic Regression
+3.0,International Relations References,-0.4718329011227375,Logistic Regression
+0.0,World Leaders and Politicians References,1.0108518886872127,Logistic Regression
+1.0,World Leaders and Politicians References,-0.21902222738900978,Logistic Regression
+2.0,World Leaders and Politicians References,-0.15229953612530525,Logistic Regression
+3.0,World Leaders and Politicians References,-0.6395301251729001,Logistic Regression
+0.0,Space and Technology Keywords,0.1350873356046476,Logistic Regression
+1.0,Space and Technology Keywords,-0.3842250991880039,Logistic Regression
+2.0,Space and Technology Keywords,0.23091238195727387,Logistic Regression
+3.0,Space and Technology Keywords,0.01822538162608523,Logistic Regression
+,Athletic Terminology,0.17764951288700104,XGBoost
+,Financial Terminology,0.10991711169481277,XGBoost
+,Technological terminology,0.032760318368673325,XGBoost
+,Geopolitical References,0.03961881622672081,XGBoost
+,World Events References,0.10091743618249893,XGBoost
+,Scientific Concepts References,0.03901676461100578,XGBoost
+,Specific Scientific Phenomena Mention,0.022081105038523674,XGBoost
+,Emerging Technology References,0.009368184953927994,XGBoost
+,Tech Company References,0.06341257691383362,XGBoost
+,Medical and Health References,0.011279827915132046,XGBoost
+,Product/Service References,0.024888476356863976,XGBoost
+,Technological Innovation and Advancement Description,0.1734762191772461,XGBoost
+,Business Company References,0.012408249080181122,XGBoost
+,International Relations References,0.02178470604121685,XGBoost
+,World Leaders and Politicians References,0.09667587280273438,XGBoost
+,Space and Technology Keywords,0.06474480777978897,XGBoost

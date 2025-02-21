@@ -9,13 +9,13 @@ from idistill.ftd import FTDistillRegressor, FTDistillRegressorCV, FTDistillClas
 from idistill.subset_predictors import L0L2RegressorCV
 
 def get_model(task_type, model_name, args):
-    if task_type == 'regression':
+    if task_type in ['regression', 'classification']:
         if model_name == 'FIGSRegressorCV':
             model = FIGSRegressorCV(n_rules_list=args.n_rules_list, 
                                     n_trees_list=args.n_trees_list, 
                                     n_depth_list=args.n_depth_list,
                                     min_impurity_decrease_list=args.min_impurity_decrease_list,
-                                    scoring=args.metric if args.metric == 'mse' else 'r2')
+                                    scoring=args.metric if args.metric == 'neg_mean_squared_error' else 'r2')
         elif model_name == 'FIGSRegressor':
             model = FIGSRegressor(max_rules=args.max_rules, 
                                     max_trees=args.max_trees, 
@@ -28,7 +28,7 @@ def get_model(task_type, model_name, args):
         else:
             model = None
         return model
-    elif task_type in ['binary', 'multiclass', 'classification']:
+    elif task_type in ['binary', 'multiclass']:
         if model_name == 'FIGSClassifier':
             model = FIGSClassifier(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth)
         elif model_name == 'XGBClassifier':

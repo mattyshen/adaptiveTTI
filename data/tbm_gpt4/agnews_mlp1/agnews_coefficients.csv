@@ -1,0 +1,91 @@
+class,feature,coefficient,model
+0.0,Economic Significance,-0.2317639174999153,Logistic Regression
+1.0,Economic Significance,-0.18209536948268462,Logistic Regression
+2.0,Economic Significance,0.6886476520293717,Logistic Regression
+3.0,Economic Significance,-0.2747883650467757,Logistic Regression
+0.0,Tech-related terminology,-0.21403808374745092,Logistic Regression
+1.0,Tech-related terminology,-0.28917093407133543,Logistic Regression
+2.0,Tech-related terminology,-0.07166272523657724,Logistic Regression
+3.0,Tech-related terminology,0.5748717430553593,Logistic Regression
+0.0,Sporting Event References,-0.2786430787200819,Logistic Regression
+1.0,Sporting Event References,0.8910865435231091,Logistic Regression
+2.0,Sporting Event References,-0.3989563708753434,Logistic Regression
+3.0,Sporting Event References,-0.21348709392768214,Logistic Regression
+0.0,Business deal/transaction,-0.020023612318076922,Logistic Regression
+1.0,Business deal/transaction,0.2714576881213819,Logistic Regression
+2.0,Business deal/transaction,-0.056564272519544385,Logistic Regression
+3.0,Business deal/transaction,-0.19486980328376574,Logistic Regression
+0.0,Global Affairs & Politics,0.8227753107319106,Logistic Regression
+1.0,Global Affairs & Politics,-0.26566424899881064,Logistic Regression
+2.0,Global Affairs & Politics,-0.3210489570198811,Logistic Regression
+3.0,Global Affairs & Politics,-0.23606210471320954,Logistic Regression
+0.0,Mention of Competition,0.057124477047397836,Logistic Regression
+1.0,Mention of Competition,0.40301378652982295,Logistic Regression
+2.0,Mention of Competition,-0.5502069019813141,Logistic Regression
+3.0,Mention of Competition,0.0900686384040924,Logistic Regression
+0.0,Geographical References,0.22071235408110806,Logistic Regression
+1.0,Geographical References,-0.031181042817511627,Logistic Regression
+2.0,Geographical References,0.042770854217178945,Logistic Regression
+3.0,Geographical References,-0.23230216548076807,Logistic Regression
+0.0,Scientific Process and Methodology,-0.1652889958108806,Logistic Regression
+1.0,Scientific Process and Methodology,0.07316180619299387,Logistic Regression
+2.0,Scientific Process and Methodology,-0.00383481681239568,Logistic Regression
+3.0,Scientific Process and Methodology,0.09596200643027801,Logistic Regression
+0.0,Corporate Strategic Movements,-0.07568152263584979,Logistic Regression
+1.0,Corporate Strategic Movements,-0.10822391211923162,Logistic Regression
+2.0,Corporate Strategic Movements,0.058708717768367606,Logistic Regression
+3.0,Corporate Strategic Movements,0.1251967169867126,Logistic Regression
+0.0,Corporate Financial Performance,-0.3080490413409594,Logistic Regression
+1.0,Corporate Financial Performance,0.1214771948913475,Logistic Regression
+2.0,Corporate Financial Performance,0.3847971887640533,Logistic Regression
+3.0,Corporate Financial Performance,-0.1982253423144401,Logistic Regression
+0.0,Product Launches and Innovations,0.09539819039324653,Logistic Regression
+1.0,Product Launches and Innovations,-0.06972163302906678,Logistic Regression
+2.0,Product Launches and Innovations,-0.07071394204147859,Logistic Regression
+3.0,Product Launches and Innovations,0.045037384677295345,Logistic Regression
+0.0,Technological Changes and Developments,0.09954698340191492,Logistic Regression
+1.0,Technological Changes and Developments,0.031614484978437954,Logistic Regression
+2.0,Technological Changes and Developments,-0.24325901165313424,Logistic Regression
+3.0,Technological Changes and Developments,0.11209754327278149,Logistic Regression
+0.0,Scientific or Technology Concepts,-0.2017739875826059,Logistic Regression
+1.0,Scientific or Technology Concepts,-0.6464412914314,Logistic Regression
+2.0,Scientific or Technology Concepts,0.013775537877385046,Logistic Regression
+3.0,Scientific or Technology Concepts,0.8344397411366169,Logistic Regression
+0.0,Sports Terminology and Jargon,-0.06323896254979422,Logistic Regression
+1.0,Sports Terminology and Jargon,0.5807330573321928,Logistic Regression
+2.0,Sports Terminology and Jargon,-0.1964888974370453,Logistic Regression
+3.0,Sports Terminology and Jargon,-0.3210051973453572,Logistic Regression
+0.0,Corporate Leadership Changes,0.049261465282820466,Logistic Regression
+1.0,Corporate Leadership Changes,0.27649835878506535,Logistic Regression
+2.0,Corporate Leadership Changes,-0.03236993385225295,Logistic Regression
+3.0,Corporate Leadership Changes,-0.2933898902156332,Logistic Regression
+0.0,Mentions of Internet Services,-0.643709411727064,Logistic Regression
+1.0,Mentions of Internet Services,0.016813274276418988,Logistic Regression
+2.0,Mentions of Internet Services,0.21643388606084316,Logistic Regression
+3.0,Mentions of Internet Services,0.41046225138980286,Logistic Regression
+0.0,Discussions on Market and Business Strategies,-0.04580611889148275,Logistic Regression
+1.0,Discussions on Market and Business Strategies,-0.20127276108504322,Logistic Regression
+2.0,Discussions on Market and Business Strategies,0.27383096559840653,Logistic Regression
+3.0,Discussions on Market and Business Strategies,-0.026752085621880587,Logistic Regression
+0.0,Mention of Financial Figures,0.09087837342917103,Logistic Regression
+1.0,Mention of Financial Figures,-0.28935498490968875,Logistic Regression
+2.0,Mention of Financial Figures,-0.012583160553085324,Logistic Regression
+3.0,Mention of Financial Figures,0.21105977203360446,Logistic Regression
+,Economic Significance,0.12603318691253662,XGBoost
+,Tech-related terminology,0.03518427535891533,XGBoost
+,Sporting Event References,0.39430299401283264,XGBoost
+,Business deal/transaction,0.011599947698414326,XGBoost
+,Global Affairs & Politics,0.09710030257701874,XGBoost
+,Mention of Competition,0.022093212231993675,XGBoost
+,Geographical References,0.014265970326960087,XGBoost
+,Scientific Process and Methodology,0.012233658693730831,XGBoost
+,Corporate Strategic Movements,0.012913389131426811,XGBoost
+,Corporate Financial Performance,0.01646769605576992,XGBoost
+,Product Launches and Innovations,0.012007923796772957,XGBoost
+,Technological Changes and Developments,0.03320905566215515,XGBoost
+,Scientific or Technology Concepts,0.14109234511852264,XGBoost
+,Sports Terminology and Jargon,0.02468002401292324,XGBoost
+,Corporate Leadership Changes,0.010854088701307774,XGBoost
+,Mentions of Internet Services,0.013621827587485313,XGBoost
+,Discussions on Market and Business Strategies,0.00915831420570612,XGBoost
+,Mention of Financial Figures,0.013181788846850395,XGBoost

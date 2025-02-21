@@ -1,0 +1,25 @@
+feature,coefficient,model
+Service Quality,0.03839972963069881,Linear Regression
+Taste Consistency,0.04732566679674949,Linear Regression
+Value for Money,0.23598655861028067,Linear Regression
+Menu Variety,0.2165805621588868,Linear Regression
+Ambiance Impact on Experience,0.3314394724257717,Linear Regression
+Presentation of Dishes,0.08436121948924291,Linear Regression
+Flavor Profile Diversity,0.05748551207495389,Linear Regression
+Dining Experience Customization,0.12401666256924537,Linear Regression
+Overall Dining Experience Reflection,0.2890952015136118,Linear Regression
+Flavor Complexity Impact,0.05181557040285896,Linear Regression
+Value for Money Perception,0.15475002296661514,Linear Regression
+Overall Customer Satisfaction,0.12360878908937747,Linear Regression
+Service Quality,0.013389239087700844,XGBoost
+Taste Consistency,0.013923851773142815,XGBoost
+Value for Money,0.055724769830703735,XGBoost
+Menu Variety,0.027492370456457138,XGBoost
+Ambiance Impact on Experience,0.036692600697278976,XGBoost
+Presentation of Dishes,0.023857874795794487,XGBoost
+Flavor Profile Diversity,0.0213618241250515,XGBoost
+Dining Experience Customization,0.02064366638660431,XGBoost
+Overall Dining Experience Reflection,0.6268088221549988,XGBoost
+Flavor Complexity Impact,0.017059369012713432,XGBoost
+Value for Money Perception,0.03896329179406166,XGBoost
+Overall Customer Satisfaction,0.10408234596252441,XGBoost
