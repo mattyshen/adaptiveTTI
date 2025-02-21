@@ -1,0 +1,5 @@
+model,train_accuracy,test_accuracy
+Logistic Regression,0.87,0.9
+Transformer,0.8794320913461539,0.8963242827868853
+MLP-1hidden,0.852,0.872
+MLP-2hiddens,0.846,0.872

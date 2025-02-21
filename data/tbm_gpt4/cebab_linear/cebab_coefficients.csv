@@ -1,0 +1,33 @@
+feature,coefficient,model
+Service Quality,0.09355057398861732,Linear Regression
+Food Quality,0.09328175705062361,Linear Regression
+Price Perception,0.13098908877311458,Linear Regression
+Ambiance,0.25664512550403895,Linear Regression
+Unique_Dining_Experience,0.015965765816472764,Linear Regression
+Repeat Visit Intention,0.10009080438745338,Linear Regression
+Dish Specific Comments,0.2333947198680418,Linear Regression
+Overall Satisfaction,0.5847307421904984,Linear Regression
+Music Experience,0.34576249272061305,Linear Regression
+Waiting Time,0.09435695369650691,Linear Regression
+Customer Expectations,0.20500532661848764,Linear Regression
+Food Temperature,-0.14762467035201954,Linear Regression
+Restaurant Crowd,-0.1454973153724799,Linear Regression
+Presentation of Food,-0.20254303150902722,Linear Regression
+Restaurant Cleanliness,-0.5209271144010104,Linear Regression
+Meal Variety,-0.25720159151748867,Linear Regression
+Service Quality,0.013706016354262829,XGBoost
+Food Quality,0.030687496066093445,XGBoost
+Price Perception,0.011809663847088814,XGBoost
+Ambiance,0.017302747815847397,XGBoost
+Unique_Dining_Experience,0.014651129953563213,XGBoost
+Repeat Visit Intention,0.014550315216183662,XGBoost
+Dish Specific Comments,0.011806940659880638,XGBoost
+Overall Satisfaction,0.7275945544242859,XGBoost
+Music Experience,0.008399274200201035,XGBoost
+Waiting Time,0.01605876348912716,XGBoost
+Customer Expectations,0.046900052577257156,XGBoost
+Food Temperature,0.017001772299408913,XGBoost
+Restaurant Crowd,0.020190613344311714,XGBoost
+Presentation of Food,0.010345964692533016,XGBoost
+Restaurant Cleanliness,0.03513258695602417,XGBoost
+Meal Variety,0.0038621334824711084,XGBoost

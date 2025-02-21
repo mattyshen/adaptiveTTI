@@ -1,0 +1,37 @@
+feature,coefficient,model
+Ambiance Experience,0.27081294603583056,Linear Regression
+Timing and Pacing,0.15749530917334037,Linear Regression
+Food Quality Satisfaction,0.14093251754594627,Linear Regression
+Value for Money Perception,0.04110306734598384,Linear Regression
+Inconsistent Reviewer Experience,0.35958267328022037,Linear Regression
+Menu Variety Diversity,0.13984523162578066,Linear Regression
+Ingredient Flavour Profile,0.04454968041174217,Linear Regression
+Service Efficiency,0.055035440970201445,Linear Regression
+Value Perception Based on Pricing vs Portion Size,0.01332415761489857,Linear Regression
+Flavor Diversity,-0.07606090885113109,Linear Regression
+Pricing Transparency,0.369757991453603,Linear Regression
+Service Speed and Wait Time,0.029741159388718276,Linear Regression
+Menu Pricing Perception,-0.033850751652671374,Linear Regression
+Value Perception Based on Portion Size,-0.06880736638875287,Linear Regression
+Price-to-Portion Ratio,-0.01438884209870588,Linear Regression
+Atmosphere Sensory Appeal,0.11715055076659801,Linear Regression
+Dish Satisfaction Level,0.18300120236428247,Linear Regression
+Price Perception Discrepancy,-0.04840905209567353,Linear Regression
+Ambiance Experience,0.026148376986384392,XGBoost
+Timing and Pacing,0.01620037667453289,XGBoost
+Food Quality Satisfaction,0.018435245379805565,XGBoost
+Value for Money Perception,0.014733667485415936,XGBoost
+Inconsistent Reviewer Experience,0.21974089741706848,XGBoost
+Menu Variety Diversity,0.019365034997463226,XGBoost
+Ingredient Flavour Profile,0.008352048695087433,XGBoost
+Service Efficiency,0.011095445603132248,XGBoost
+Value Perception Based on Pricing vs Portion Size,0.015927733853459358,XGBoost
+Flavor Diversity,0.015466602519154549,XGBoost
+Pricing Transparency,0.027117697522044182,XGBoost
+Service Speed and Wait Time,0.009142144583165646,XGBoost
+Menu Pricing Perception,0.008941015228629112,XGBoost
+Value Perception Based on Portion Size,0.030990535393357277,XGBoost
+Price-to-Portion Ratio,0.011114971712231636,XGBoost
+Atmosphere Sensory Appeal,0.01994393952190876,XGBoost
+Dish Satisfaction Level,0.5184494853019714,XGBoost
+Price Perception Discrepancy,0.008834789507091045,XGBoost

@@ -1,0 +1,21 @@
+feature,coefficient,model
+Service Quality Impact on Rating,0.25530309087624825,Linear Regression
+Food Quality Impact on Rating,0.34348052339631885,Linear Regression
+Menu Pricing Perception,0.11586331348702354,Linear Regression
+Price-Service Disparity,0.1598585345347601,Linear Regression
+Flavor Profile Impact on Rating,0.04661425079922892,Linear Regression
+Ingredient Freshness Impact on Rating,0.19661439578740067,Linear Regression
+Wait Time Perception Impact on Rating,0.04305947470601989,Linear Regression
+Dining Experience Perception,0.2896716937321702,Linear Regression
+Ambiance Impact on Low Ratings,-5.942635944425234e-05,Linear Regression
+Portion Size Impact on Rating,0.05660294926199438,Linear Regression
+Service Quality Impact on Rating,0.027242107316851616,XGBoost
+Food Quality Impact on Rating,0.055066633969545364,XGBoost
+Menu Pricing Perception,0.016924308612942696,XGBoost
+Price-Service Disparity,0.020172275602817535,XGBoost
+Flavor Profile Impact on Rating,0.019075529649853706,XGBoost
+Ingredient Freshness Impact on Rating,0.028978483751416206,XGBoost
+Wait Time Perception Impact on Rating,0.021077316254377365,XGBoost
+Dining Experience Perception,0.7758437395095825,XGBoost
+Ambiance Impact on Low Ratings,0.01982737146317959,XGBoost
+Portion Size Impact on Rating,0.015792228281497955,XGBoost

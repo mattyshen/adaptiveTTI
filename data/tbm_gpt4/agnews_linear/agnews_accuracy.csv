@@ -1,0 +1,5 @@
+model,train_accuracy,test_accuracy
+Logistic Regression,0.94,0.848
+XGBoost,0.988,0.852
+MLP-1hidden,0.704,0.672
+MLP-2hiddens,0.756,0.732

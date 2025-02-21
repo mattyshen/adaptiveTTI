@@ -1,0 +1,49 @@
+class,feature,coefficient,model
+0,Scientific and technological focus,-0.31549383956089266,Logistic Regression
+1,Scientific and technological focus,-0.5228843313111032,Logistic Regression
+2,Scientific and technological focus,-0.06387403958527589,Logistic Regression
+3,Scientific and technological focus,0.9022522104572707,Logistic Regression
+0,Financial and Business Terminology,-0.3308948964309721,Logistic Regression
+1,Financial and Business Terminology,-0.02971726308881278,Logistic Regression
+2,Financial and Business Terminology,0.7104112154372669,Logistic Regression
+3,Financial and Business Terminology,-0.34979905591748306,Logistic Regression
+0,Coverage of Global Events,0.00981073353935287,Logistic Regression
+1,Coverage of Global Events,-0.10775553089813185,Logistic Regression
+2,Coverage of Global Events,-0.20076469439658673,Logistic Regression
+3,Coverage of Global Events,0.2987094917553695,Logistic Regression
+0,Presence of Sports Terminology,-0.43888773342652815,Logistic Regression
+1,Presence of Sports Terminology,1.0371587107884546,Logistic Regression
+2,Presence of Sports Terminology,-0.1358625207699666,Logistic Regression
+3,Presence of Sports Terminology,-0.462408456591964,Logistic Regression
+0,Financial Reporting and Transactions,-0.3276543270782094,Logistic Regression
+1,Financial Reporting and Transactions,-0.015360968384470357,Logistic Regression
+2,Financial Reporting and Transactions,0.35735577680433905,Logistic Regression
+3,Financial Reporting and Transactions,-0.014340481341655538,Logistic Regression
+0,Global Political Dynamics,0.49177355348053564,Logistic Regression
+1,Global Political Dynamics,-0.542018511453126,Logistic Regression
+2,Global Political Dynamics,0.04293590440970991,Logistic Regression
+3,Global Political Dynamics,0.007309053562881737,Logistic Regression
+0,Technical and Software Terminology,-0.49739729508425057,Logistic Regression
+1,Technical and Software Terminology,-0.3997235425241802,Logistic Regression
+2,Technical and Software Terminology,0.12630729908702265,Logistic Regression
+3,Technical and Software Terminology,0.770813538521408,Logistic Regression
+0,Prominent Sports Competitions and Events,-0.06337728982301787,Logistic Regression
+1,Prominent Sports Competitions and Events,1.0487967190407212,Logistic Regression
+2,Prominent Sports Competitions and Events,-0.5775089959741977,Logistic Regression
+3,Prominent Sports Competitions and Events,-0.4079104332435009,Logistic Regression
+0,International Diplomacy and Policy,0.18959343326792472,Logistic Regression
+1,International Diplomacy and Policy,0.20947680413471625,Logistic Regression
+2,International Diplomacy and Policy,-0.1251810671659473,Logistic Regression
+3,International Diplomacy and Policy,-0.27388917023669584,Logistic Regression
+0,World Affairs and Geopolitics,0.2836863881764647,Logistic Regression
+1,World Affairs and Geopolitics,0.1831407802344722,Logistic Regression
+2,World Affairs and Geopolitics,0.018318464354659475,Logistic Regression
+3,World Affairs and Geopolitics,-0.4851456327655911,Logistic Regression
+0,Inclusion of Sports Team Names,0.5285210543194454,Logistic Regression
+1,Inclusion of Sports Team Names,0.3638408128694788,Logistic Regression
+2,Inclusion of Sports Team Names,-0.8623394804709483,Logistic Regression
+3,Inclusion of Sports Team Names,-0.03002238671797764,Logistic Regression
+0,Presence of Technology Product Announcements,0.25689230876443114,Logistic Regression
+1,Presence of Technology Product Announcements,-0.24967130713021815,Logistic Regression
+2,Presence of Technology Product Announcements,-0.0011963157783886653,Logistic Regression
+3,Presence of Technology Product Announcements,-0.006024685855825119,Logistic Regression

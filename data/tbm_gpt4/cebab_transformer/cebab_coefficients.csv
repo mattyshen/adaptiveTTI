@@ -1,0 +1,19 @@
+feature,coefficient,model
+Quality of Service,0.05558713060502026,Linear Regression
+Food Quality,0.14617692373473104,Linear Regression
+Restaurant Ambience,0.09517995776583953,Linear Regression
+Quality of Dining Experience,0.09365054910381558,Linear Regression
+Value for Money,-0.054545227637048346,Linear Regression
+Menu Variety,0.01827312222803671,Linear Regression
+Problem with Payment or Billing,0.02614697820707802,Linear Regression
+Customer dissatisfaction,-0.37151098087594014,Linear Regression
+Restaurant Location,0.010266320981889763,Linear Regression
+Timeliness of Service,0.014435442001294485,Linear Regression
+Waitstaff's Attitude,0.06768686112983731,Linear Regression
+Food Authenticity,0.04270105811855905,Linear Regression
+Customer Return Intention,0.3596773478774083,Linear Regression
+Billing Transparency,-0.020705552900453304,Linear Regression
+Food Presentation,-0.020984369744302383,Linear Regression
+Quality of Waiting Area,0.07428006098536606,Linear Regression
+Food Pricing,0.04506165406671028,Linear Regression
+Food Portion Size,0.023587332321971403,Linear Regression
