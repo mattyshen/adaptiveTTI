@@ -25,11 +25,8 @@ params_coupled_dict.update({('teacher_path',
                              'max_trees',
                              'max_rules',
                              'gpu'):
-                             [(path, '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 30, 200, 2)
-                             for path in ['cub/outputs/best_Joint0.01_Transformer1_e500_model_1.pth',
-                                         'cub/outputs/best_Joint0.01_MLP1_model_1.pth',
-                                         'cub/outputs/best_Joint0.01_MLP2_model_1.pth',
-                                         'cub/outputs/best_Joint0.01_Linear_model_1.pth']]})
+                             [('cub/outputs/best_Joint0.01_Transformer1_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 30, 200, 2)]+
+          [('cub/outputs/best_Joint0.01_Transformer1_model_1.pth', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/train.pkl', '/home/mattyshen/ConceptBottleneck/CUB_processed/class_attr_data_10/test.pkl', 'FIGSRegressor', 40, 250, 2)]                 })
 
 args_list = submit_utils.get_args_list(
     params_shared_dict=params_shared_dict,

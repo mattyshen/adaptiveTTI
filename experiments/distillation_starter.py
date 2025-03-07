@@ -539,8 +539,13 @@ if __name__ == "__main__":
         cti_l_test_arr = np.argsort(np.var(np.abs(test_l_edit), axis = 1), axis = 1)[:, ::-1]
         cti_l_test = [row for row in cti_l_test_arr]
         cti_l_test = split_list_by_sizes(cti_adap_test, cti_l_test)
-    
-    for i in range(args.num_interactions_intervention):
+        
+    if args.num_interactions_intervention == 0:
+        num_iters = len(figs_student.trees_)
+    else:
+        num_iters = args.num_interactions_intervention
+        
+    for i in range(num_iters):
         for n in range(X_test_d.shape[0]):
 
             X_test_d_a_edit.iloc[n, cti_adap_test[n][i]] = X_test.iloc[n, cti_adap_test[n][i]]
