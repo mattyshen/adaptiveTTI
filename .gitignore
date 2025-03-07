@@ -131,8 +131,9 @@ dmypy.json
 **.cache
 **.pkl
 results/
+models/
+data/
 **.pyc
-**.png
 .autoprompt
 .vscode
 **tmp
