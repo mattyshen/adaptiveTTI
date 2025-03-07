@@ -141,3 +141,8 @@ data/
 slurm_files/
 slurm_files_out/
 scripts/data/
+
+archive/
+results/
+csv_results/
+data/tbm_data/

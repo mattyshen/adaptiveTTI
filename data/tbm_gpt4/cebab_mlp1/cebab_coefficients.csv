@@ -1,0 +1,37 @@
+feature,coefficient,model
+Quality of Service,0.052324985475439977,Linear Regression
+Food Quality,0.10706981781372925,Linear Regression
+Timeliness of Service,0.028211683898500654,Linear Regression
+Noise Level,0.01088806717654537,Linear Regression
+Menu Variety,-0.010667554632243063,Linear Regression
+Overall Experience,0.46982473699057437,Linear Regression
+Special Occasion Recognition,-0.009780027255044154,Linear Regression
+Returning Customer,0.09966926263704397,Linear Regression
+Quality of Atmosphere,0.05606937083019044,Linear Regression
+Unmet Expectations,0.2122859459151902,Linear Regression
+Expectation Fulfilment,-0.021568839168243068,Linear Regression
+Food Consistency,-0.03208871174206311,Linear Regression
+Change in Quality Over Time,-0.03867661978532287,Linear Regression
+Quality of Decor,0.013417091316741282,Linear Regression
+Pricing Perception,-0.011749034534790533,Linear Regression
+Complaint Resolution,0.015337833483651305,Linear Regression
+Food Temperature,-0.07802363315741066,Linear Regression
+Appropriateness of Pricing,0.008694879834743142,Linear Regression
+Quality of Service,0.010553209111094475,XGBoost
+Food Quality,0.019837450236082077,XGBoost
+Timeliness of Service,0.009446217678487301,XGBoost
+Noise Level,0.011312006041407585,XGBoost
+Menu Variety,0.009281987324357033,XGBoost
+Overall Experience,0.7595975399017334,XGBoost
+Special Occasion Recognition,0.0050999559462070465,XGBoost
+Returning Customer,0.04768539220094681,XGBoost
+Quality of Atmosphere,0.013518731109797955,XGBoost
+Unmet Expectations,0.038927655667066574,XGBoost
+Expectation Fulfilment,0.006822975352406502,XGBoost
+Food Consistency,0.010369055904448032,XGBoost
+Change in Quality Over Time,0.00980445183813572,XGBoost
+Quality of Decor,0.010613786056637764,XGBoost
+Pricing Perception,0.006277088541537523,XGBoost
+Complaint Resolution,0.008585937321186066,XGBoost
+Food Temperature,0.01053541712462902,XGBoost
+Appropriateness of Pricing,0.011731131933629513,XGBoost

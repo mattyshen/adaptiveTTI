@@ -1,0 +1,37 @@
+feature,coefficient,model
+Food Quality,0.08891329112883624,Linear Regression
+service quality,-0.04752084906632933,Linear Regression
+Price Perceptions,0.0448172928936968,Linear Regression
+Ambiance and Environment,0.17375928908517366,Linear Regression
+Expectations Met,0.21130149943734414,Linear Regression
+Location Convenience,0.016812516177402394,Linear Regression
+Overall Diner Experience,0.5722482169211605,Linear Regression
+Wait Time,0.040052323906635906,Linear Regression
+Variety of Food,-0.015295346494666419,Linear Regression
+Beverage Quality,0.009482955406567496,Linear Regression
+Food Portion Size,0.012322290592332362,Linear Regression
+Reservation Ease,0.06910476856151923,Linear Regression
+Payment Options,0.6618516081989149,Linear Regression
+Meal Specific Reviews,0.009637436552790661,Linear Regression
+Special Dietary Offerings,-0.11463228181546424,Linear Regression
+Server Attentiveness,0.20713978373087852,Linear Regression
+Unique Dining Experience,-0.06146612781535729,Linear Regression
+Food Arrival Timing,0.0029944776087321183,Linear Regression
+Food Quality,0.018360111862421036,XGBoost
+service quality,0.013616494834423065,XGBoost
+Price Perceptions,0.007103945128619671,XGBoost
+Ambiance and Environment,0.014724231325089931,XGBoost
+Expectations Met,0.12198374420404434,XGBoost
+Location Convenience,0.008891027420759201,XGBoost
+Overall Diner Experience,0.7285155057907104,XGBoost
+Wait Time,0.007553581614047289,XGBoost
+Variety of Food,0.008089964278042316,XGBoost
+Beverage Quality,0.009986738674342632,XGBoost
+Food Portion Size,0.00916764885187149,XGBoost
+Reservation Ease,0.008392425253987312,XGBoost
+Payment Options,0.0025982053484767675,XGBoost
+Meal Specific Reviews,0.007968157529830933,XGBoost
+Special Dietary Offerings,0.005295942071825266,XGBoost
+Server Attentiveness,0.013314465992152691,XGBoost
+Unique Dining Experience,0.00844315905123949,XGBoost
+Food Arrival Timing,0.005994630511850119,XGBoost
