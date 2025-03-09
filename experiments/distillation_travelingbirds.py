@@ -361,7 +361,7 @@ def add_main_args(parser):
     parser.add_argument(
         "--student_name", 
         type=str,
-        choices=["FIGSRegressorCV", "FIGSRegressor", "XGBRegressor"],
+        choices=["FIGSRegressorCV", "FIGSRegressor", "XGBRegressor", "DecisionTreeRegressor", "RandomForestRegressor"],
         default="FIGSRegressorCV", 
         help="student name"
     )

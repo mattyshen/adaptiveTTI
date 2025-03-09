@@ -1,4 +1,5 @@
-from sklearn.multioutput import MultiOutputRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
 import xgboost as xgb
 
 #from imodels import FIGSRegressor, FIGSClassifier
@@ -20,6 +21,13 @@ def get_model(task_type, model_name, args):
             model = FIGSRegressor(max_rules=args.max_rules, 
                                     max_trees=args.max_trees, 
                                     max_depth=args.max_depth)
+        elif model_name == 'XGBRegressor':
+            model = xgb.XGBRegressor(n_estimators=args.max_trees, max_depth=args.max_depth)
+            
+        elif model_name == 'RandomForestRegressor':
+            model = RandomForestRegressor(n_estimators=args.max_trees, max_depth=args.max_depth)
+        elif model_name == 'DecisionTreeRegressor':
+            model = DecisionTreeRegressor(max_depth=args.max_depth)
         elif model_name == 'XGBoostRegressor':
             model = xgb.XGBRegressor(n_estimators=args.max_trees, max_depth=args.max_depth)
         elif model_name == 'FTDRegressorCV': 

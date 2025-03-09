@@ -154,7 +154,7 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
                 #print(test_dir)
                 # loader = load_data([test_dir], True, False, batch_size, image_dir='images',
                 #                    n_class_attr=2, override_train=override_train)
-                loader = load_data([test_dir], True, False, batch_size, image_dir='images',
+                loader = load_data([test_dir], True, False, batch_size, image_dir='AdversarialData/CUB_fixed/test',
                                    n_class_attr=2)
             else:
                 train_dir = path
@@ -162,7 +162,7 @@ def generate_tabular_distillation_data(teacher, train_path, test_path, gpu=0):
                 #print(train_dir, val_dir)
                 # loader = load_data([train_dir, val_dir], True, False, batch_size, image_dir='images',
                 #                    n_class_attr=2, override_train=override_train)
-                loader = load_data([train_dir, val_dir], True, False, batch_size, image_dir='images',
+                loader = load_data([train_dir, val_dir], True, False, batch_size, image_dir='AdversarialData/CUB_fixed/train',
                                     n_class_attr=2)
                 
             torch.manual_seed(0)
@@ -236,89 +236,6 @@ def process_teacher_eval(y_teacher):
     y_teacher_eval = y_teacher.idxmax(axis = 1).astype(int).values
     
     return y_teacher_eval
-
-def extract_interactions(student):
-
-    interactions = []
-
-    def traverse_tree(node, current_features, current_depth):
-
-        if node.left is None and node.right is None:
-            tree_interactions.append((current_features, np.var(np.abs(node.value))))
-            return
-        if node.left is not None:
-            current_features_l = current_features.copy()
-            current_features_l.append('c' + str(node.feature+1))
-            traverse_tree(node.left, current_features_l.copy(), current_depth=current_depth+1)
-        if node.right is not None:
-            current_features_r = current_features.copy()
-            current_features_r.append('!c' + str(node.feature+1))
-            traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
-            
-    try:
-        trees = student.trees_
-    except:
-        trees = student.figs.trees_
-
-    for tree in trees:
-        tree_interactions = []
-        traverse_tree(tree, [], current_depth=0)
-        interactions.append(tree_interactions)
-        
-    return interactions
-
-def split_list_by_sizes(list1, list2):
-    result = []
-    for row1, row2 in zip(list1, list2):
-        sizes = [len(sublist) for sublist in row1]
-        row_result = []
-        start = 0
-        for size in sizes:
-            end = start + size
-            row_result.append(list(row2[start:end]))
-            start = end
-        result.append(row_result)
-    return result
-
-def find_closest_keys_vectorized(dictionary, targets):
-    keys = np.array(list(dictionary.keys()))
-    targets = np.array(targets)
-    diffs = np.abs(keys[:, None] - targets)
-    closest_key_indices = np.argmin(diffs, axis=0)
-    closest_keys = keys[closest_key_indices]
-
-    return closest_keys
-
-def extract_adaptive_intervention(student, X, interactions, number_of_top_paths=0):
-    
-    figs_dict = {}
-    for i, tree in enumerate(interactions):
-        tree_dict = {}
-        for path, var in tree:
-            tree_dict[var] = path
-        figs_dict[i] = tree_dict
-
-    test_pred_intervention = student.predict(X, by_tree = True)
-
-    concepts_to_edit = [[] for _ in range(X.shape[0])]
-    variances = np.var(np.abs(test_pred_intervention), axis = 1)
-
-    concepts = np.array([find_closest_keys_vectorized(figs_dict[i], variances[:, i]) for i in range(variances.shape[1])])
-    orderings_of_interventions = np.argsort(concepts.T, axis = 1)[:, ::-1]
-    variances_of_orderings_of_interventions = np.sort(concepts.T, axis = 1)[:, ::-1]
-    
-    if number_of_top_paths == 0:
-        r = range(orderings_of_interventions.shape[1])
-    else:
-        r = range(number_of_top_paths)
-
-    for t in r:
-        for i, l in enumerate(orderings_of_interventions[:, t]):
-            new_list = []
-            for c in figs_dict[l][variances_of_orderings_of_interventions[i, t]]:
-                new_list.append(int(c[1:])-1 if c[0] != '!' else int(c[2:])-1)
-            concepts_to_edit[i].append(new_list)
-    return concepts_to_edit
 
 
 # initialize args
@@ -459,89 +376,15 @@ if __name__ == "__main__":
     y_train_t_eval = process_teacher_eval(y_train_t)
     y_test_t_eval = process_teacher_eval(y_test_t)
     
-    figs_student = idistill.model.get_model(args.task_type, args.student_name, args)
+    student = idistill.model.get_model(args.task_type, args.student_name, args)
     
-    r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
-    
-    r['max_trees'] = figs_student.max_trees
-    r['max_rules'] = figs_student.max_rules
-    r['max_depth'] = figs_student.max_depth
-    try:
-        r['n_trees'] = len(figs_student.figs.trees_)
-        r['n_rules'] = figs_student.figs.complexity_
-    except:
-        r['n_trees'] = len(figs_student.trees_)
-        r['n_rules'] = figs_student.complexity_
+    r, student = distill_model(student, X_train_d, y_train_d, r)
         
-    r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
-    r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
+    r = evaluate_student(student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
+    r = evaluate_student(student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
     
     r = evaluate_teacher(y_train_t_eval, y_test_t_eval, y_train, y_test, args.metric, "prediction", r)
     
-    ### adaptive FIGS concept editing ###
-    
-    figs_interactions = extract_interactions(figs_student)
-    
-    r['depth'] = max([max([len(i[0]) for i in t]) for t in figs_interactions])
-    
-    train_q5 = np.quantile(X_train_t, 0.05, axis = 0)
-    train_q95 = np.quantile(X_train_t, 0.95, axis = 0)
-
-    X_test_d_a_edit = X_test_d.copy()
-    X_test_d_r_edit = X_test_d.copy()
-
-    X_test_t_a_edit = X_test_t.copy()
-    X_test_t_r_edit = X_test_t.copy()
-
-    
-    cti_adap_test = extract_adaptive_intervention(figs_student, X_test_d, figs_interactions, args.num_interactions_intervention)
-
-    cti_rand_test = [np.random.choice(np.arange(X_test_d.shape[1]), X_test_d.shape[1], replace=False) for i in range(X_test_d.shape[0])]
-    cti_rand_test = split_list_by_sizes(cti_adap_test, cti_rand_test)
-    
-    
-    if 'linear' in args.teacher_path or 'Linear' in args.teacher_path:
-        X_test_d_l_edit = X_test_d.copy()
-        X_test_t_l_edit = X_test_t.copy()
-        
-        test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.sec_model.linear.weight.cpu().detach().numpy())
-
-        cti_l_test_arr = np.argsort(np.var(np.abs(test_l_edit), axis = 1), axis = 1)[:, ::-1]
-        cti_l_test = [row for row in cti_l_test_arr]
-        cti_l_test = split_list_by_sizes(cti_adap_test, cti_l_test)
-    
-    for i in range(args.num_interactions_intervention):
-        for n in range(X_test_d.shape[0]):
-
-            X_test_d_a_edit.iloc[n, cti_adap_test[n][i]] = X_test.iloc[n, cti_adap_test[n][i]]
-            X_test_d_r_edit.iloc[n, cti_rand_test[n][i]] = X_test.iloc[n, cti_rand_test[n][i]]
-
-            X_test_t_a_edit.iloc[n, cti_adap_test[n][i]] = train_q5[cti_adap_test[n][i]]*(X_test.iloc[n, cti_adap_test[n][i]] == 0) + train_q95[cti_adap_test[n][i]]*(X_test.iloc[n, cti_adap_test[n][i]])
-            X_test_t_r_edit.iloc[n, cti_rand_test[n][i]] = train_q5[cti_rand_test[n][i]]*(X_test.iloc[n, cti_rand_test[n][i]] == 0) + train_q95[cti_rand_test[n][i]]*(X_test.iloc[n, cti_rand_test[n][i]])
-            
-            if 'linear' in args.teacher_path or 'Linear' in args.teacher_path:
-                X_test_d_l_edit.iloc[n, cti_l_test[n][i]] = X_test.iloc[n, cti_l_test[n][i]]
-                X_test_t_l_edit.iloc[n, cti_l_test[n][i]] = train_q5[cti_l_test[n][i]]*(X_test.iloc[n, cti_l_test[n][i]] == 0) + train_q95[cti_l_test[n][i]]*(X_test.iloc[n, cti_l_test[n][i]])
-
-        y_test_t_eval_a_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_a_edit, args.gpu))
-        y_test_t_eval_r_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_r_edit, args.gpu))
-            
-        r = evaluate_test_student(figs_student, X_test_d_a_edit, y_test_t_eval_a_interv, args.metric, f"distill_adap_interv_iter{i}", r)
-        r = evaluate_test_student(figs_student, X_test_d_r_edit, y_test_t_eval_r_interv, args.metric, f"distill_rand_interv_iter{i}", r)
-        
-        r = evaluate_test_student(figs_student, X_test_d_a_edit, y_test, args.metric, f"pred_adap_interv_iter{i}", r)
-        r = evaluate_test_student(figs_student, X_test_d_r_edit, y_test, args.metric, f"pred_rand_interv_iter{i}", r)
-
-        r = evaluate_test_teacher(y_test_t_eval_a_interv, y_test, args.metric, f"pred_adap_interv_iter{i}", r)
-        r = evaluate_test_teacher(y_test_t_eval_r_interv, y_test, args.metric, f"pred_rand_interv_iter{i}", r)
-        
-        if 'linear' in args.teacher_path or 'Linear' in args.teacher_path:
-            y_test_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_l_edit, args.gpu))
-            
-            r = evaluate_test_student(figs_student, X_test_d_l_edit, y_test_t_eval_l_interv, args.metric, f"distill_lin_interv_iter{i}", r)
-            r = evaluate_test_student(figs_student, X_test_d_l_edit, y_test, args.metric, f"pred_lin_interv_iter{i}", r)
-            r = evaluate_test_teacher(y_test_t_eval_l_interv, y_test, args.metric, f"pred_lin_interv_iter{i}", r)
-        
     # save results
     print(f'save_dir_unique: {save_dir_unique}')
     joblib.dump(
