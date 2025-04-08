@@ -29,7 +29,7 @@ Concept Bottleneck Models (CBMs) offer interpretability by predicting human-unde
 
 ## Citation
 If you use any of our code in your work, please cite:
-```bash
+```
 @misc{shen2025atti,
       title={Adaptive Test-Time Intervention for Concept Bottleneck Models}, 
       author={Matthew Shen and Aliyah Hsu and Abhineet Agarwal and Bin Yu},
