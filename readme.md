@@ -1,6 +1,6 @@
-This is an evolving repo optimized for machine-learning projects aimed at designing a new algorithm. They require sweeping over different hyperparameters, comparing to baselines, and iteratively refining an algorithm. Based of [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science).
+# Adaptive Test-Time Intervention for Concept Bottleneck Models
 
-# Distilling a Model Walk-through
+## Distilling a Model Walk-through
 1. Make a copy of `experiments/distillation_starter.py` in the `experiments` folder.
 2. Fill out "### TODO: ... ###" in the copy file.
     - `predict_teacher` returns the teacher's prediction.
@@ -16,23 +16,5 @@ This is an evolving repo optimized for machine-learning projects aimed at design
 6. Make a copy of `notebooks/distillation_starter.ipynb` in the `notebooks` folder. Edit the paths in `results_dir = '../results/distillation_starter'` and `experiment_filename = '../experiments/distillation_starter.py'` lines
 7. Observe and investigate the results in the `.ipynb` file.
 
-# Features
-- scripts sweep over hyperparameters using easy-to-specify python code
-- experiments automatically cache runs that have already completed
-    - caching uses the (**non-default**) arguments in the argparse namespace
-- notebooks can easily evaluate results aggregated over multiple experiments using pandas
-
-# Guidelines
-- See some useful packages [here](https://csinva.io/blog/misc/ml_coding_tips)
-- Avoid notebooks whenever possible (ideally, only for analyzing results, making figures)
-- Paths should be specified relative to a file's location (e.g. `os.path.join(os.path.dirname(__file__), 'data')`)
-- Naming variables: use the main thing first followed by the modifiers (e.g. `X_train`, `acc_test`)
-    - binary arguments should start with the word "use" (e.g. `--use_caching`) and take values 0 or 1
-- Use logging instead of print
-- Use argparse and sweep over hyperparams using python scripts (or custom things, like [amulet](https://amulet-docs.azurewebsites.net/main/index.html))
-    - Note, arguments get passed as strings so shouldn't pass args that aren't primitives or a list of primitives (more complex structures should be handled in the experiments code)
-- Each run should save a single pickle file of its results
-- All experiments that depend on each other should run end-to-end with one script (caching things along the way)
-- Keep updated requirements in setup.py
-- Follow sklearn apis whenever possible
-- Use Huggingface whenever possible, then pytorch
+## Features
+- Based of [cookiecutter-data-science](https://github.com/drivendata/cookiecutter-data-science). See linked repo for an evolving repo optimized for machine-learning projects aimed at designing a new algorithm. They require sweeping over different hyperparameters, comparing to baselines, and iteratively refining an algorithm.

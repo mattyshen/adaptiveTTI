@@ -5,7 +5,6 @@ import xgboost as xgb
 #from imodels import FIGSRegressor, FIGSClassifier
 
 from idistill.whitebox_figs import FIGSRegressorCV, FIGSRegressor, FIGSClassifier
-from idistill.ftd import FTDistillRegressor, FTDistillRegressorCV, FTDistillClassifierCV
 
 from idistill.subset_predictors import L0L2RegressorCV
 
@@ -30,9 +29,6 @@ def get_model(task_type, model_name, args):
             model = DecisionTreeRegressor(max_depth=args.max_depth)
         elif model_name == 'XGBoostRegressor':
             model = xgb.XGBRegressor(n_estimators=args.max_trees, max_depth=args.max_depth)
-        elif model_name == 'FTDRegressorCV': 
-            model = FTDistillRegressorCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
-                 post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.max_depth, mo=args.mo)
         else:
             model = None
         return model
@@ -41,9 +37,6 @@ def get_model(task_type, model_name, args):
             model = FIGSClassifier(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth)
         elif model_name == 'XGBClassifier':
             model = xgb.XGBClassifier(n_estimators=args.max_trees, max_depth=args.max_depth)
-        elif model_name == 'FTDClassifierCV': 
-            model = FTDistillClassifierCV(pre_interaction=args.pre_interaction, pre_max_features=args.pre_max_features,
-                 post_interaction=args.post_interaction, post_max_features=args.post_max_features, size_interactions=args.max_depth)
         else:
             model = None
         return model
