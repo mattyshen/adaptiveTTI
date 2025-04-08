@@ -200,6 +200,7 @@ def predict_teacher(model, X, task_type):
             
     return y_pred
 
+
 def load_teacher_model(task_type, teacher_type):
     """Load in teacher model
     
@@ -231,7 +232,6 @@ def load_teacher_model(task_type, teacher_type):
     
     return model
 
-
 def generate_tabular_distillation_data(model, saved_data_path, task_name, teacher_type, task_type, task_output_classes, teacher_path, do_intervention):
     """Generate tabular concept and output data using teacher model for distillation and evaluation
     
@@ -262,7 +262,7 @@ def generate_tabular_distillation_data(model, saved_data_path, task_name, teache
             if x not in res:
                 res.append(x)
         return res
-    
+
     def remove_dup_concepts(concepts, cats):
         new_concepts, new_cats = [], []
         for x, y in zip(concepts, cats):
@@ -335,10 +335,6 @@ def generate_tabular_distillation_data(model, saved_data_path, task_name, teache
 
     else:
         model.fit(X_train_teacher, y_train)
-        
-        filename = f'{task_name}_{teacher_type}_model.pkl'
-        joblib.dump(model, filename)
-            
         if task_type == "regression":
             y_train_teacher = model.predict(X_train_teacher).reshape(-1, 1) #[N, 1]
             y_test_teacher = model.predict(X_test_teacher).reshape(-1, 1)
@@ -371,23 +367,15 @@ def process_distillation_data(X_train_teacher, X_test_teacher, X_test, y_train_t
     """
     
     encoder = OneHotEncoder(categories=categories, handle_unknown='ignore')
-    encoder.fit(X_train_teacher.astype(str))  # Fit only on training data
+    encoded_X_train_t = encoder.fit_transform(X_train_teacher.astype(str))
+    encoded_X_train_t = pd.DataFrame(encoded_X_train_t.toarray(), columns=encoder.get_feature_names_out())
+    
+    encoded_X_test_t = encoder.fit_transform(X_test_teacher.astype(str))
+    encoded_X_test_t = pd.DataFrame(encoded_X_test_t.toarray(), columns=encoder.get_feature_names_out())
 
-    encoded_X_train_t = pd.DataFrame(
-        encoder.transform(X_train_teacher.astype(str)).toarray(),
-        columns=encoder.get_feature_names_out()
-    )
-    
-    encoded_X_test_t = pd.DataFrame(
-        encoder.transform(X_test_teacher.astype(str)).toarray(),
-        columns=encoder.get_feature_names_out()
-    )
-    
     if X_test is not None:
-        encoded_X_test = pd.DataFrame(
-            encoder.transform(X_test.astype(str)).toarray(),
-            columns=encoder.get_feature_names_out()
-        )
+        encoded_X_test = encoder.fit_transform(X_test.astype(str))
+        encoded_X_test = pd.DataFrame(encoded_X_test.toarray(), columns=encoder.get_feature_names_out())
     else:
         encoded_X_test = None
     
@@ -395,7 +383,7 @@ def process_distillation_data(X_train_teacher, X_test_teacher, X_test, y_train_t
     
     return encoded_X_train_t, encoded_X_test_t, y_train_teacher, y_test_teacher, encoded_X_test, ohe_column_names, encoder
 
-'''def create_map_ohe_idx_to_concept_idx(ohe_column_names, saved_data_path, task_name, teacher_type):
+def create_map_ohe_idx_to_concept_idx(ohe_column_names, saved_data_path, task_name, teacher_type):
     concept_file = join(saved_data_path, "{}_{}".format(task_name, teacher_type), "{}_concepts.csv".format(task_name))
     concept_df = pd.read_csv(concept_file)
     concepts = concept_df['Concept Name'].to_list()
@@ -411,28 +399,6 @@ def process_distillation_data(X_train_teacher, X_test_teacher, X_test, y_train_t
         #concept_name, score = x.split('_')
         idx_map[i] = concepts.index(concept_name)
         score_map[i] = float(score)
-    return idx_map, score_map'''
-
-def create_map_ohe_idx_to_concept_idx(ohe_column_names, saved_data_path, task_name, teacher_type):
-    concept_file = join(saved_data_path, f"{task_name}_{teacher_type}", f"{task_name}_concepts.csv")
-    concept_df = pd.read_csv(concept_file)
-    concepts = concept_df['Concept Name'].to_list()
-    
-    idx_map, score_map = {}, {}
-    for i, x in enumerate(ohe_column_names):
-        # Safer: split from the right, once
-        try:
-            concept_name, score_str = x.rsplit('_', 1)
-            score = float(score_str)
-        except ValueError:
-            raise ValueError(f"Column name '{x}' is not in expected format '<concept>_<score>'")
-
-        if concept_name not in concepts:
-            raise ValueError(f"Concept name '{concept_name}' not found in concept list.")
-
-        idx_map[i] = concepts.index(concept_name)
-        score_map[i] = score
-
     return idx_map, score_map
     
 def process_student_eval(y_student, teacher_type, task_type):
@@ -471,103 +437,7 @@ def process_teacher_eval(y_teacher, teacher_type, task_type):
         y_teacher_eval = np.argmax(y_teacher, axis=1)
     return y_teacher_eval
 
-def extract_interactions(student, task_type):
 
-    interactions = []
-
-    def traverse_tree(node, current_features, current_depth):
-
-        if node.left is None and node.right is None:
-            if task_type == "regression":
-                tree_interactions.append((current_features, np.max(np.abs(node.value))))
-            else:
-                tree_interactions.append((current_features, np.var(np.abs(node.value))))
-            return
-        if node.left is not None:
-            current_features_l = current_features.copy()
-            current_features_l.append('c' + str(node.feature+1))
-            traverse_tree(node.left, current_features_l.copy(), current_depth=current_depth+1)
-        if node.right is not None:
-            current_features_r = current_features.copy()
-            current_features_r.append('!c' + str(node.feature+1))
-            traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
-            
-    try:
-        trees = student.trees_
-    except:
-        trees = student.figs.trees_
-
-    for tree in trees:
-        tree_interactions = []
-        traverse_tree(tree, [], current_depth=0)
-        interactions.append(tree_interactions)
-        
-    return interactions
-
-def split_list_by_sizes(list1, list2):
-    result = []
-    for row1, row2 in zip(list1, list2):
-        sizes = [len(sublist) for sublist in row1]
-        row_result = []
-        start = 0
-        for size in sizes:
-            end = start + size
-            row_result.append(list(row2[start:end]))
-            start = end
-        result.append(row_result)
-    return result
-
-def find_closest_keys_vectorized(dictionary, targets):
-    keys = np.array(list(dictionary.keys()))
-    targets = np.array(targets)
-    diffs = np.abs(keys[:, None] - targets)
-    closest_key_indices = np.argmin(diffs, axis=0)
-    closest_keys = keys[closest_key_indices]
-
-    return closest_keys
-
-def extract_adaptive_intervention(student, X, interactions, task_type, number_of_top_paths=0):
-    
-    figs_dict = {}
-    for i, tree in enumerate(interactions):
-        tree_dict = {}
-        for path, var in tree:
-            tree_dict[var] = path
-        figs_dict[i] = tree_dict
-
-    test_pred_intervention = student.predict(X, by_tree = True)
-
-    concepts_to_edit = [[] for _ in range(X.shape[0])]
-    if task_type == "regression":
-        variances = np.max(np.abs(test_pred_intervention), axis = 1)
-    else:
-        variances = np.var(np.abs(test_pred_intervention), axis = 1)
-
-    concepts = np.array([find_closest_keys_vectorized(figs_dict[i], variances[:, i]) for i in range(variances.shape[1])])
-    orderings_of_interventions = np.argsort(concepts.T, axis = 1)[:, ::-1]
-    variances_of_orderings_of_interventions = np.sort(concepts.T, axis = 1)[:, ::-1]
-    
-    if number_of_top_paths == 0:
-        r = range(orderings_of_interventions.shape[1])
-    else:
-        r = range(number_of_top_paths)
-
-    for t in r:
-        for i, l in enumerate(orderings_of_interventions[:, t]):
-            new_list = []
-            for c in figs_dict[l][variances_of_orderings_of_interventions[i, t]]:
-                new_list.append(int(c[1:])-1 if c[0] != '!' else int(c[2:])-1)
-            concepts_to_edit[i].append(new_list)
-    return concepts_to_edit
-
-def map_into_idx_list(idx_map, orig_idx_list):
-    res = [idx_map[x] for x in orig_idx_list]
-    return res
-
-def map_into_data_arr(idx_map, orig_idx_list):
-    res = [idx_map[x] for x in orig_idx_list]
-    return np.array(res)
-        
 # initialize args
 def add_main_args(parser):
     """Caching uses the non-default values from argparse to name the saving directory.
@@ -616,7 +486,7 @@ def add_main_args(parser):
     parser.add_argument(
         "--student_name", 
         type=str,
-        choices=["FIGSRegressorCV", "FIGSRegressor", "XGBRegressor"],
+        choices=["FIGSRegressorCV", "FIGSRegressor", "XGBRegressor", "DecisionTreeRegressor", "RandomForestRegressor"],
         default="FIGSRegressorCV", 
         help="student name"
     )
@@ -627,22 +497,22 @@ def add_main_args(parser):
         default="False", 
         help="whether to do intervention after distillation"
     )
-    parser.add_argument("--n_trees_list", 
+    parser.add_argument("-n_trees_list", 
                         help="delimited max_trees_list input for FIGS CV",
-                        default="50",
+                        default="30,40",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("--n_rules_list", 
+    parser.add_argument("-n_rules_list", 
                         help="delimited max_rules_list input for FIGS CV", 
-                        default="100",
+                        default="125,200",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("--n_depth_list", 
-                        help="delimited n_depth_list input for FIGS CV",
-                        default="3",
+    parser.add_argument("-n_depth_list", 
+                        help="delimited max_rules_list input for FIGS CV",
+                        default="4",
                         type=lambda s: [int(item) for item in s.split(",")]
     )
-    parser.add_argument("--min_impurity_decrease_list", 
+    parser.add_argument("-min_impurity_decrease_list", 
                         help="delimited min_impurity_decrease_list input for FIGS CV",
                         default="0",
                         type=lambda s: [int(item) for item in s.split(",")]
@@ -660,7 +530,7 @@ def add_main_args(parser):
         "--metric", type=str, choices=["neg_mean_squared_error", "accuracy", "r2", "f1"], default="r2", help="metric to log distillation and prediction performance"
     )
     parser.add_argument(
-        "--num_interactions_intervention", type=int, default=0, help="max interactions to intervene on"
+        "--num_interactions_intervention", type=int, default=3, help="max interactions to intervene on"
     )
 
     return parser
@@ -717,114 +587,19 @@ if __name__ == "__main__":
     y_train_t_eval = process_teacher_eval(y_train_t, args.teacher_name, args.task_type)
     y_test_t_eval = process_teacher_eval(y_test_t, args.teacher_name, args.task_type)
     
-    figs_student = idistill.model.get_model(args.task_type, args.student_name, args)
-
-    ### distillation ###
-    print('distilling')
-    r, figs_student = distill_model(figs_student, X_train_d, y_train_d, r)
-    
-    r['max_trees'] = figs_student.max_trees
-    r['max_rules'] = figs_student.max_rules
-    r['max_depth'] = figs_student.max_depth
-    try:
-        r['n_trees'] = len(figs_student.figs.trees_)
-        r['n_rules'] = figs_student.figs.complexity_
-    except:
-        r['n_trees'] = len(figs_student.trees_)
-        r['n_rules'] = figs_student.complexity_
+    student = idistill.model.get_model(args.task_type, args.student_name, args)
+    print(X_train_d.shape, y_train_d.shape)
+    r, student = distill_model(student, X_train_d, y_train_d, r)
         
-    r = evaluate_student(figs_student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
-    r = evaluate_student(figs_student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
+    r = evaluate_student(student, X_train_d, X_test_d, y_train_t_eval, y_test_t_eval, args.metric, "distillation", r)
+    r = evaluate_student(student, X_train_d, X_test_d, y_train, y_test, args.metric, "prediction", r)
+    
     r = evaluate_teacher(y_train_t_eval, y_test_t_eval, y_train, y_test, args.metric, "prediction", r)
     
-    ohe2concept_idx_map, ohe2score_map = create_map_ohe_idx_to_concept_idx(ohe_column_names, args.train_path, args.task_name, args.teacher_name)
-    
-    ### adaptive FIGS concept editing ###
-    print('editing')
-    figs_interactions = extract_interactions(figs_student, args.task_type)
-    
-    r['depth'] = max([max([len(i[0]) for i in t]) for t in figs_interactions])
-    
-
-    X_test_d_a_edit = X_test_d.copy()
-    X_test_d_r_edit = X_test_d.copy()
-
-    X_test_t_a_edit = X_test_t.copy()
-    X_test_t_r_edit = X_test_t.copy()
-
-    
-    cti_adap_test = extract_adaptive_intervention(figs_student, X_test_d, figs_interactions, args.task_type, args.num_interactions_intervention)
-
-    cti_rand_test = [np.random.choice(np.arange(X_test_d.shape[1]), X_test_d.shape[1], replace=False) for i in range(X_test_d.shape[0])]
-    cti_rand_test = split_list_by_sizes(cti_adap_test, cti_rand_test)
-    
-    if 'linear' in [args.teacher_path, args.teacher_name] or 'Linear' in [args.teacher_path, args.teacher_name]:
-        X_test_d_l_edit = X_test_d.copy()
-        X_test_t_l_edit = X_test_t.copy()
-        
-        test_l_edit = np.einsum('nc, yc -> nyc', X_test_t.values, teacher.coef_)
-        
-        if args.task_type == "regression":
-            cti_l_test_arr = np.argsort(np.max(np.abs(test_l_edit), axis = 1), axis = 1)[:, ::-1]
-        else:
-            cti_l_test_arr = np.argsort(np.var(np.abs(test_l_edit), axis = 1), axis = 1)[:, ::-1]
-        cti_l_test = [row for row in cti_l_test_arr]
-        cti_l_test = split_list_by_sizes(cti_adap_test, cti_l_test)
-    
-    
-    if args.num_interactions_intervention == 0:
-        num_iters = len(figs_student.figs.trees_)
-    else:
-        num_iters = args.num_interactions_intervention
-
-
-    cti_adap_test_concept_space = [[map_into_idx_list(ohe2concept_idx_map, cti_adap_test[n][i]) for i in range(len(cti_adap_test[n]))] for n in range(X_test_d.shape[0])]
-    cti_rand_test_concept_space = [[map_into_idx_list(ohe2concept_idx_map, cti_rand_test[n][i]) for i in range(len(cti_rand_test[n]))] for n in range(X_test_d.shape[0])]
-    
-    for i in range(num_iters):
-        for n in range(X_test_d.shape[0]):
-
-            #X_test_d_a_edit.iloc[n, cti_adap_test[n][i]] = X_test_ohe.iloc[n, cti_adap_test[n][i]]
-            #X_test_d_r_edit.iloc[n, cti_rand_test[n][i]] = X_test_ohe.iloc[n, cti_rand_test[n][i]]
-            
-            adap_idxs = map_into_idx_list(ohe2concept_idx_map, cti_adap_test[n][i])
-            rand_idxs = map_into_idx_list(ohe2concept_idx_map, cti_rand_test[n][i])
-            
-            X_test_t_a_edit.iloc[n, adap_idxs] = X_test.iloc[n, adap_idxs]
-            X_test_t_r_edit.iloc[n, rand_idxs] = X_test.iloc[n, rand_idxs]
-
-            X_test_d_a_edit = encoder.transform(X_test_t_a_edit.astype(str)).toarray()
-            X_test_d_r_edit = encoder.transform(X_test_t_r_edit.astype(str)).toarray()
-            
-            if 'linear' in [args.teacher_path, args.teacher_name] or 'Linear' in [args.teacher_path, args.teacher_name]:
-                l_idxs = map_into_idx_list(ohe2concept_idx_map, cti_l_test[n][i])
-                
-                #X_test_d_l_edit.iloc[n, cti_l_test[n][i]] = X_test_ohe.iloc[n, cti_l_test[n][i]]
-                X_test_t_l_edit.iloc[n, l_idxs] = X_test.iloc[n, l_idxs]
-                X_test_d_l_edit = encoder.transform(X_test_t_l_edit.astype(str)).toarray()
-
-        y_test_t_eval_a_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_a_edit, args.task_type), args.teacher_name, args.task_type)
-        y_test_t_eval_r_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_r_edit, args.task_type), args.teacher_name, args.task_type)
-        
-        r = evaluate_test_student(figs_student, X_test_d_a_edit, y_test, args.metric, f"pred_adap_interv_iter{i}", r)
-        r = evaluate_test_student(figs_student, X_test_d_r_edit, y_test, args.metric, f"pred_rand_interv_iter{i}", r)
-        
-        r = evaluate_test_teacher(y_test_t_eval_a_interv, y_test, args.metric, f"pred_adap_interv_iter{i}", r)
-        r = evaluate_test_teacher(y_test_t_eval_r_interv, y_test, args.metric, f"pred_rand_interv_iter{i}", r)
-        
-        if 'linear' in [args.teacher_path, args.teacher_name] or 'Linear' in [args.teacher_path, args.teacher_name]:
-            y_test_t_eval_l_interv = process_teacher_eval(predict_teacher(teacher, X_test_t_l_edit, args.task_type), args.teacher_name, args.task_type)
-            
-            r = evaluate_test_student(figs_student, X_test_d_l_edit, y_test, args.metric, f"pred_lin_interv_iter{i}", r)
-            r = evaluate_test_teacher(y_test_t_eval_l_interv, y_test, args.metric, f"pred_lin_interv_iter{i}", r)
-        
-    
-    # save the interaction groups
-    feature_groups_df = pd.DataFrame({'cti_adap_test': cti_adap_test_concept_space, 'cti_rand_test': cti_rand_test_concept_space, 'cti_l_test': cti_l_test})
-    feature_groups_df.to_csv(f'{args.task_name}_{args.teacher_name}_interv_groups.csv', index=False)
-    
     # save results
+    print(f'save_dir_unique: {save_dir_unique}')
     joblib.dump(
         r, join(save_dir_unique, "results.pkl")
     )  # caching requires that this is called results.pkl
+    #joblib.dump(model, join(save_dir_unique, "model.pkl"))
     logging.info("Succesfully completed :)\n\n")

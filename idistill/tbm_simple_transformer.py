@@ -220,20 +220,20 @@ def fit_and_save(num_epochs, model, dataloader, is_regression, save_path, device
 
 
 def main():
+    # Define training config
     gpu = 0
     task_name = "agnews"#"agnews"#"cebab"
     teacher_type = "transformer"
     is_regression = False#True
     num_classes = 4#1
     num_epochs = 150#150(agnews), 300(cebab)
-    
-    train_file = join("tbm_gpt4", "{}_{}".format(task_name, teacher_type), "{}_train_df.csv".format(task_name))
-    test_file = join("tbm_gpt4", "{}_{}".format(task_name, teacher_type), "{}_test_df.csv".format(task_name))
-    concept_file = join("tbm_gpt4", "{}_{}".format(task_name, teacher_type), "{}_concepts.csv".format(task_name))
-    
-    #train_file = join("{}_train_df.csv".format(task_name))
-    #test_file = join("{}_test_df.csv".format(task_name))
-    #concept_file = join("{}_concepts.csv".format(task_name))
+
+    path_to_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Define train, test, concept file paths
+    train_file = join(path_to_repo, "data", "tbm_gpt4", "{}_{}".format(task_name, teacher_type), "{}_train_df.csv".format(task_name))
+    test_file = join(path_to_repo, "data", "tbm_gpt4", "{}_{}".format(task_name, teacher_type), "{}_test_df.csv".format(task_name))
+    concept_file = join(path_to_repo, "data", "tbm_gpt4", "{}_{}".format(task_name, teacher_type), "{}_concepts.csv".format(task_name))
                      
     # load train data
     tbm_train_dataset = TBMDataset(train_file, concept_file, is_regression=is_regression)
@@ -243,28 +243,31 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model = SimpleTransformer(vocab_size=vocab_size, embedding_dim=52, num_heads=4, num_layers=2, num_classes=num_classes).to(device)
-    
-    '''for epoch in range(num_epochs):
+
+    # Train
+    for epoch in range(num_epochs):
         loss = train(model, train_dataloader, device, is_regression)
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss:.4f}')
     
+    model_checkpoint_name = join(path_to_repo, "data", "tbm_gpt4", "{}_{}".format(task_name, teacher_type), "{}_simple_transformer_checkpoint.pth".format(task_name))
     # Save model checkpoint
     torch.save({
         'epoch': num_epochs,
         'model_state_dict': model.state_dict(),
         'loss': loss,
-    }, 'model_checkpoint.pth')
-    print("Model checkpoint saved to model_checkpoint.pth")'''
+    }, model_checkpoint_name)
+    print("Model checkpoint saved to model_checkpoint.pth")
     
-    # load data
+    # Evaluation
+    # load test data
     tbm_test_dataset = TBMDataset(test_file, concept_file, is_regression=is_regression)
     test_dataloader = DataLoader(tbm_test_dataset, batch_size=128, shuffle=True, num_workers=1)
     
-    # Load the model 
-    model.load_state_dict(torch.load('tbm_gpt4/agnews_transformer/agnews_simple_transformer_checkpoint.pth')['model_state_dict'])
+    # Load the model checkpoint
+    model.load_state_dict(torch.load(model_checkpoint_name )['model_state_dict'])
     score = evaluation(model, test_dataloader, device, is_regression)
     y_test_teacher = predict_proba(model, test_dataloader, device, is_regression)
-    print(np.argmax(y_test_teacher, axis=1))
+
     if is_regression:
         print(f'test mse {score:.4f}')
     else:
