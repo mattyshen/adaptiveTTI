@@ -35,7 +35,6 @@ path_to_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(path_to_repo)
 
 import idistill.model
-import idistill.data
 
 from idistill.tbm_simple_transformer import *
 
