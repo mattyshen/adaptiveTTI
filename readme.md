@@ -4,9 +4,9 @@ Concept Bottleneck Models (CBMs) offer interpretability by predicting human-unde
 
 ## Organization
 - `data`: contains NLP data of TBM models.
-- `experiments`: contains distillation and adaptive test-time intervention (ATTI) with FIGS-BD, Linear, and Random version scripts for various datasets (CUB, TravelingBirds, AGNews, CEBaB).
+- `experiments`: contains distillation and adaptive test-time intervention (ATTI) with FIGS-BD, Linear, and Random version scripts for various datasets (CUB, TravelingBirds, AGNews, CEBaB). Also contains baseline scripts for other baseline interpretability models (i.e. XGBoost, Decision Tree, Random Forest).
 - `figures`: contains created plots utilized in the paper.
-- `idistill`: contains models like FIGS(-BD) and Transformer concept-to-target models for TBMs.
+- `idistill`: contains models like FIGS-BD and Transformer concept-to-target models for TBMs. FIGS-BD extract ATTIs with the assumptions that concepts are column-named `ci` where i = 0, 1, ... (i.e. `c1` for concept 1). This should be handled in `generate_tabular_distillation_data` explained below.
 - `notebooks`: contains notebooks to process the results from the distillation and ATTI, as well as notebook versions of ATTI to generate plots utilized in the paper.
 - `scripts`: contains files that allow a user to sweep over distillation and ATTI hyperparameters for an experiment in `experiments`.
 
