@@ -2,18 +2,18 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor
 import xgboost as xgb
 
-from idistill.figs_bd import FIGSRegressorCV, FIGSRegressor, FIGSClassifier
+from idistill.figs_bd import FIGSBDRegressorCV, FIGSBDRegressor
 
 def get_model(task_type, model_name, args):
     if task_type in ['regression', 'classification']:
         if model_name == 'FIGSRegressorCV':
-            model = FIGSRegressorCV(n_rules_list=args.n_rules_list, 
+            model = FIGSBDRegressorCV(n_rules_list=args.n_rules_list, 
                                     n_trees_list=args.n_trees_list, 
                                     n_depth_list=args.n_depth_list,
                                     min_impurity_decrease_list=args.min_impurity_decrease_list,
                                     scoring=args.metric if args.metric == 'neg_mean_squared_error' else 'r2')
         elif model_name == 'FIGSRegressor':
-            model = FIGSRegressor(max_rules=args.max_rules, 
+            model = FIGSBDRegressor(max_rules=args.max_rules, 
                                     max_trees=args.max_trees, 
                                     max_depth=args.max_depth)
         elif model_name == 'XGBRegressor':
