@@ -36,7 +36,7 @@ sys.path.append(path_to_repo)
 
 import idistill.model
 import idistill.data
-from idistill.whitebox_figs import FIGSRegressorCV
+
 from idistill.tbm_simple_transformer import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -471,39 +471,6 @@ def process_teacher_eval(y_teacher, teacher_type, task_type):
         y_teacher_eval = np.argmax(y_teacher, axis=1)
     return y_teacher_eval
 
-def extract_interactions(student, task_type):
-
-    interactions = []
-
-    def traverse_tree(node, current_features, current_depth):
-
-        if node.left is None and node.right is None:
-            if task_type == "regression":
-                tree_interactions.append((current_features, np.max(np.abs(node.value))))
-            else:
-                tree_interactions.append((current_features, np.var(np.abs(node.value))))
-            return
-        if node.left is not None:
-            current_features_l = current_features.copy()
-            current_features_l.append('c' + str(node.feature+1))
-            traverse_tree(node.left, current_features_l.copy(), current_depth=current_depth+1)
-        if node.right is not None:
-            current_features_r = current_features.copy()
-            current_features_r.append('!c' + str(node.feature+1))
-            traverse_tree(node.right, current_features_r.copy(), current_depth=current_depth+1)
-            
-    try:
-        trees = student.trees_
-    except:
-        trees = student.figs.trees_
-
-    for tree in trees:
-        tree_interactions = []
-        traverse_tree(tree, [], current_depth=0)
-        interactions.append(tree_interactions)
-        
-    return interactions
-
 def split_list_by_sizes(list1, list2):
     result = []
     for row1, row2 in zip(list1, list2):
@@ -516,49 +483,6 @@ def split_list_by_sizes(list1, list2):
             start = end
         result.append(row_result)
     return result
-
-def find_closest_keys_vectorized(dictionary, targets):
-    keys = np.array(list(dictionary.keys()))
-    targets = np.array(targets)
-    diffs = np.abs(keys[:, None] - targets)
-    closest_key_indices = np.argmin(diffs, axis=0)
-    closest_keys = keys[closest_key_indices]
-
-    return closest_keys
-
-def extract_adaptive_intervention(student, X, interactions, task_type, number_of_top_paths=0):
-    
-    figs_dict = {}
-    for i, tree in enumerate(interactions):
-        tree_dict = {}
-        for path, var in tree:
-            tree_dict[var] = path
-        figs_dict[i] = tree_dict
-
-    test_pred_intervention = student.predict(X, by_tree = True)
-
-    concepts_to_edit = [[] for _ in range(X.shape[0])]
-    if task_type == "regression":
-        variances = np.max(np.abs(test_pred_intervention), axis = 1)
-    else:
-        variances = np.var(np.abs(test_pred_intervention), axis = 1)
-
-    concepts = np.array([find_closest_keys_vectorized(figs_dict[i], variances[:, i]) for i in range(variances.shape[1])])
-    orderings_of_interventions = np.argsort(concepts.T, axis = 1)[:, ::-1]
-    variances_of_orderings_of_interventions = np.sort(concepts.T, axis = 1)[:, ::-1]
-    
-    if number_of_top_paths == 0:
-        r = range(orderings_of_interventions.shape[1])
-    else:
-        r = range(number_of_top_paths)
-
-    for t in r:
-        for i, l in enumerate(orderings_of_interventions[:, t]):
-            new_list = []
-            for c in figs_dict[l][variances_of_orderings_of_interventions[i, t]]:
-                new_list.append(int(c[1:])-1 if c[0] != '!' else int(c[2:])-1)
-            concepts_to_edit[i].append(new_list)
-    return concepts_to_edit
 
 def map_into_idx_list(idx_map, orig_idx_list):
     res = [idx_map[x] for x in orig_idx_list]
@@ -740,21 +664,18 @@ if __name__ == "__main__":
     ohe2concept_idx_map, ohe2score_map = create_map_ohe_idx_to_concept_idx(ohe_column_names, args.train_path, args.task_name, args.teacher_name)
     
     ### adaptive FIGS concept editing ###
-    print('editing')
-    figs_interactions = extract_interactions(figs_student, args.task_type)
+    figs_student.extract_interactions()
     
-    r['depth'] = max([max([len(i[0]) for i in t]) for t in figs_interactions])
+    r['depth'] = max([max([len(i[0]) for i in t]) for t in figs_student.interactions])
     
-
     X_test_d_a_edit = X_test_d.copy()
     X_test_d_r_edit = X_test_d.copy()
 
     X_test_t_a_edit = X_test_t.copy()
     X_test_t_r_edit = X_test_t.copy()
 
+    cti_adap_test = figs_student.extract_atti(X_test_d, args.num_interactions_intervention)
     
-    cti_adap_test = extract_adaptive_intervention(figs_student, X_test_d, figs_interactions, args.task_type, args.num_interactions_intervention)
-
     cti_rand_test = [np.random.choice(np.arange(X_test_d.shape[1]), X_test_d.shape[1], replace=False) for i in range(X_test_d.shape[0])]
     cti_rand_test = split_list_by_sizes(cti_adap_test, cti_rand_test)
     

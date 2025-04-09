@@ -2,11 +2,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.tree import DecisionTreeRegressor
 import xgboost as xgb
 
-#from imodels import FIGSRegressor, FIGSClassifier
-
-from idistill.whitebox_figs import FIGSRegressorCV, FIGSRegressor, FIGSClassifier
-
-from idistill.subset_predictors import L0L2RegressorCV
+from idistill.figs_bd import FIGSRegressorCV, FIGSRegressor, FIGSClassifier
 
 def get_model(task_type, model_name, args):
     if task_type in ['regression', 'classification']:
@@ -33,12 +29,7 @@ def get_model(task_type, model_name, args):
             model = None
         return model
     elif task_type in ['binary', 'multiclass']:
-        if model_name == 'FIGSClassifier':
-            model = FIGSClassifier(max_rules=args.max_rules, max_trees=args.max_trees, max_depth=args.max_depth)
-        elif model_name == 'XGBClassifier':
-            model = xgb.XGBClassifier(n_estimators=args.max_trees, max_depth=args.max_depth)
-        else:
-            model = None
+        model = None
         return model
     else:
         raise ValueError('Invalid task_type: {}'.format(task_type))

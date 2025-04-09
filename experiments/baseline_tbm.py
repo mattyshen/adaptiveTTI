@@ -36,7 +36,7 @@ sys.path.append(path_to_repo)
 
 import idistill.model
 import idistill.data
-from idistill.whitebox_figs import FIGSRegressorCV
+
 from idistill.tbm_simple_transformer import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

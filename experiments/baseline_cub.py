@@ -33,7 +33,6 @@ path_to_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(path_to_repo)
 
 import idistill.model
-from idistill.whitebox_figs import FIGSRegressorCV
 
 def distill_model(student, X_train_teacher, y_train_teacher, r, feature_names = None):
     """Distill the teacher model using the student model"""
